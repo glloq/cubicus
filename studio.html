@@ -13,7 +13,7 @@
 </div></details>
 <button id="saveLocal">Enregistrer</button>
 </div><div class="release-actions">
-<button id="testInline">Tester ici</button><button id="test" class="icon-secondary">Tester en onglet</button><button id="export" class="primary">Exporter l’énigme</button>
+<button id="testInline">Tester ici</button><button id="test" class="icon-secondary">Tester en onglet</button><button id="export">Exporter .puzzle</button><button id="embed" class="primary">Intégrer au site</button>
 </div></header>
 <nav class="studio-tabs" aria-label="Étapes de création">
   <button data-stage="assembly" class="active"><span aria-hidden="true">01</span> Assemblage</button>
@@ -123,7 +123,19 @@
 <label><input id="importFlipY" type="checkbox"> Retournement vertical</label>
 <label>Opacité <input id="importOpacity" type="range" min="0" max="100" value="100"></label>
 <button type="button" id="cancelImageImport">Annuler</button><button type="submit" id="applyImageImport">Appliquer</button>
-</form></dialog><dialog id="playtest" aria-label="Test de l’énigme">
+</form></dialog><dialog id="embedDialog" aria-labelledby="embedTitle">
+<h2 id="embedTitle">Intégrer l’énigme à un site</h2>
+<p>Placez le fichier HTML à côté de votre page, puis collez cette ligne dans la div de votre choix.</p>
+<button id="downloadStandalone" type="button">Télécharger le fichier HTML autonome</button>
+<label>Chemin ou URL du fichier <input id="embedSource" type="text" value="./cubicus-enigme.html" spellcheck="false"></label>
+<textarea id="embedCode" aria-label="Code iframe avec fichier HTML" readonly rows="3"></textarea>
+<button id="copyHosted" type="button">Copier la ligne HTML</button>
+<p>Vous pouvez aussi coller une iframe qui contient tout le fichier. Cette ligne est plus longue et utilise du JavaScript intégré.</p>
+<button id="copyInline" type="button">Copier la ligne autonome</button>
+<textarea id="inlineCode" aria-label="Code iframe autonome" readonly rows="3" hidden></textarea>
+<p id="embedStatus" role="status"></p>
+<button id="closeEmbed" type="button">Fermer</button>
+</dialog><dialog id="playtest" aria-label="Test de l’énigme">
 <div><button id="closePlaytest">Retour au Studio</button><button id="reloadPlaytest">Charger la version actuelle</button></div>
 <iframe id="playtestFrame" title="Player Cubicus"></iframe>
 </dialog><p id="status" class="studio-status" role="status"></p><script type="module" src="./src/studio.js"></script></body></html>

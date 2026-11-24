@@ -15,12 +15,23 @@ Ces liens ouvrent la version publiée sur GitHub Pages. Pour essayer les changem
 - **Préparation** · Configurez les contrôles avec un profil ou règle par règle, appliquez des contraintes aux cubes et aux groupes, puis mélangez l’assemblage avec les opérations autorisées. Testez l’énigme dans le Studio ou dans un nouvel onglet.
 - **Player** · Ouvrez un fichier `.puzzle` ou une démo. Les commandes s’adaptent aux règles, à l’assemblage et à la sélection. Le fichier privé `.cubicus` conserve les calques et les références de création. L’export public contient l’état initial, les textures finales et les règles de jeu.
 
+## Intégrer une énigme dans un site
+
+Dans le Studio, choisissez **Intégrer au site**. Téléchargez `cubicus-enigme.html`, placez-le à côté de votre page et collez la ligne proposée dans une `div`. Le fichier contient l’énigme publique, ses textures et le Player.
+
+```html
+<iframe src="./cubicus-enigme.html" title="Énigme Cubicus" sandbox="allow-scripts" loading="lazy" style="display:block;width:100%;height:clamp(460px,70vw,720px);border:0"></iframe>
+```
+
+**Copier la ligne autonome** permet aussi de tout coller en une ligne, sans fichier séparé, si le site accepte les iframes `srcdoc` et le JavaScript intégré. Le fichier hébergé convient mieux aux sites dont la politique de sécurité bloque les scripts intégrés à la page. Le serveur qui héberge le fichier doit permettre son affichage dans une iframe et l’exécution de son script intégré.
+
 ## Développement local
 
 Avec Node.js 22 et Python 3, installez les versions épinglées et servez le dépôt.
 
 ```bash
 npm ci
+npm run build:embed
 python3 -m http.server 8080
 ```
 

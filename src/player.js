@@ -2,12 +2,13 @@ import {applySceneState, initialView} from './scene-state.js';
 import {demo} from './demo.js';
 import {SceneView} from './scene.js';
 import {Controller} from './controller.js';
-import {validate, exportPuzzle, grid} from './model.js';
+import {validate, exportPuzzle} from './model.js';
 import {getPuzzle} from './storage.js';
 import {updatePlayerContext} from './workspace-ui.js';
 
 const q = id => document.getElementById(id);
-let initial = grid(2,2,1);
+const embedded = q('embeddedPuzzle');
+let initial = [];
 let openingView;
 const view = new SceneView(q('view'), id => ctl.select(id));
 const ctl = new Controller(view, q('controls'), structuredClone(initial));
@@ -65,12 +66,20 @@ q('reset').onclick = () => {
 q('demo').onchange = openDemo;
 
 try {
-  const id = new URLSearchParams(location.search).get('test');
-  if (id) {
-    const puzzle = await getPuzzle(id);
-    if (!puzzle) throw new Error('Test introuvable');
-    open(puzzle,'Test depuis le Studio');
-  } else openDemo();
+  if (embedded) {
+    q('demo').closest('label').hidden = true;
+    q('load').closest('label').hidden = true;
+    document.querySelector('.brand').removeAttribute('href');
+    document.querySelector('.brand').removeAttribute('aria-label');
+    open(JSON.parse(embedded.textContent), 'Énigme');
+  } else {
+    const id = new URLSearchParams(location.search).get('test');
+    if (id) {
+      const puzzle = await getPuzzle(id);
+      if (!puzzle) throw new Error('Test introuvable');
+      open(puzzle,'Test depuis le Studio');
+    } else openDemo();
+  }
 } catch (error) {
   q('status').textContent = error.message;
 }

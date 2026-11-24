@@ -319,3 +319,18 @@ input::file-selector-button {
   background: var(--panel);
 }
 [data-inspector-panel="drawing"]:fullscreen #paintViewport { max-height: 68dvh; max-width: 68dvh; margin-inline: auto; }
+
+#embedDialog {
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  width: min(550px,calc(100vw - 24px));
+  max-height: 90dvh;
+  padding: 16px;
+}
+#embedDialog::backdrop { background: #10151bd9; }
+#embedDialog h2 { margin-top: 0; }
+#embedDialog :is(input,textarea) { display: block; width: 100%; }
+#embedDialog textarea { font-family: ui-monospace, monospace; margin-bottom: 6px; }
+#embedStatus { color: var(--accent); }

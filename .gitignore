@@ -3,3 +3,4 @@ dist/
 *.cubicus
 *.puzzle
 private/
+src/standalone-player.html

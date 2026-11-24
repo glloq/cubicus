@@ -36,3 +36,9 @@ Le mode création peut déplacer des cubes que le joueur verra verrouillés. Vé
 ## Se repérer dans l’atelier
 
 Les parcours dans **Assemblage** ouvrent directement un outil d’édition ou un générateur. **Inspecter la face** ouvre le dessin depuis la scène. L’inspecteur sépare **Dessin**, **Matière** et **Volume**. Dans **Préparer**, utilisez **Contrôler l’export** pour vérifier le fichier public avant de le télécharger. Le menu **Projets** donne accès aux fichiers privés, au brouillon et aux versions locales.
+
+## Intégrer une énigme sur un autre site
+
+Le bouton **Intégrer au site** prépare le même état public que l’export `.puzzle` et y ajoute le lecteur, Three.js et les styles. Le fichier `cubicus-enigme.html` peut être ouvert seul ou publié sur un hébergement statique. Copiez la ligne iframe dans la div voulue. Le chemin proposé fonctionne quand les deux pages sont dans le même dossier. Si le fichier est hébergé ailleurs, adaptez le chemin ou entrez son URL publique dans le Studio.
+
+Pour une intégration sans deuxième fichier, copiez la ligne autonome. Cette variante embarque le document entier dans `srcdoc` et peut être volumineuse. Elle dépend des règles de sécurité de la page qui l’accueille. Les deux variantes isolent le Player dans une iframe et chargent directement l’énigme. Les notes, les calques éditables et les références restent dans le projet privé.

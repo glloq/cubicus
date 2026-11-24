@@ -1,3 +1,4 @@
+import {bindEmbedExport} from './embed-export.js';
 import {bindWorkspace} from './workspace-ui.js';
 import {actionState,controlDiagnostics} from './control-actions.js';
 import {controlRules} from './control-rules.js';
@@ -72,6 +73,8 @@ function publicSnapshot() {
   if(report.errors.length)throw new Error(report.errors.join(' '));
   return preparePublicPuzzle(ctl.cubes, rules, publicView);
 }
+
+bindEmbedExport(publicSnapshot);
 
 q('export').onclick = async () => {
   const button=q('export');
