@@ -21,3 +21,5 @@
 #paint{background-color:#35414d;background-image:conic-gradient(#46535f 25%,#35414d 0 50%,#46535f 0 75%,#35414d 0);background-size:20px 20px}#opacityValue{font-size:12px;color:#b9cddd}
 
 .player #controls[data-mode=spacing] .selectiontools{display:none}.player #controls:not([data-mode=spacing]) .spacingtools{display:none}.player #controls[data-mode=spacing] .toolstrip button[data-mode=spacing]{background:#386d79}.player #controls .toolstrip button{white-space:nowrap}
+
+#view .viewtools canvas{width:104px;height:104px;display:block;cursor:pointer;flex-basis:100%;object-fit:contain}.viewtools{width:180px;align-items:center}.viewtools button{font-size:10px}.viewtools canvas{margin-left:auto}
