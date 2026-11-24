@@ -7,8 +7,8 @@ export class SceneView {
   this.group=new T.Group();this.gizmo=new T.Group();this.scene.add(this.group,this.gizmo);this.handles=[];this.meshes=[];this.cache=new Map();this.selectedIds=[];
   this.camera=new T.PerspectiveCamera(45,1,.05,1000);this.camera.position.set(5,4,7);
   this.renderer=new T.WebGLRenderer({antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));host.append(this.renderer.domElement);
-  this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=T.PCFSoftShadowMap;
-  this.scene.add(new T.HemisphereLight(0xffffff,0x526070,1.1));this.light=new T.DirectionalLight(0xffffff,2);this.light.position.set(4,6,3);this.light.castShadow=true;this.light.shadow.mapSize.set(1024,1024);this.light.shadow.bias=-.0003;this.scene.add(this.light,this.light.target);
+  this.renderer.shadowMap.enabled=false;this.renderer.shadowMap.type=T.PCFSoftShadowMap;
+  this.scene.add(new T.HemisphereLight(0xffffff,0x526070,1.1));this.light=new T.DirectionalLight(0xffffff,2);this.light.position.set(5,7.071,5);this.light.castShadow=true;this.light.shadow.mapSize.set(1024,1024);this.light.shadow.bias=-.0003;this.scene.add(this.light,this.light.target);
   this.receiver=new T.Mesh(new T.PlaneGeometry(200,200),new T.MeshStandardMaterial({color:0x66717c,roughness:1}));this.receiver.rotation.x=-Math.PI/2;this.receiver.receiveShadow=true;this.receiver.visible=false;this.scene.add(this.receiver);
   this.geo=new T.BoxGeometry(1,1,1);this.edges=new T.EdgesGeometry(this.geo);this.loader=new T.TextureLoader();this.ray=new T.Raycaster();
   this.makeOrbit();this.initViewTools();this.initInput();
@@ -39,10 +39,10 @@ export class SceneView {
    const p=new T.Vector3(...c.p.map((v,i)=>(v-center[i])*(1+spacing[i]))),r=c.r,q=new T.Quaternion().setFromRotationMatrix(new T.Matrix4().set(r[0],r[1],r[2],0,r[3],r[4],r[5],0,r[6],r[7],r[8],0,0,0,0,1));if(animate&&m.userData.placed)transitions.push({m,p,q,from:m.position.clone(),rot:m.quaternion.clone()});else{m.position.copy(p);m.quaternion.copy(q)}m.userData.placed=true;m.children[0].visible=selected.includes(c.id)&&this.mode!=='select';this.meshes.push(m)}
   for(const m of old.values()){this.group.remove(m);m.material.forEach(x=>x.dispose());m.children[0].material.dispose()}
   const used=new Set(cubes.flatMap(c=>c.faces).filter(Boolean));for(const [k,t] of this.cache)if(!used.has(k)){t.dispose();this.cache.delete(k)}
-  this.extent=Math.max(2,...this.meshes.map(m=>m.position.length()+1));this.receiver.position.y=Math.min(0,...this.meshes.map(m=>m.position.y))-.65;const sc=this.light.shadow.camera;sc.left=sc.bottom=-this.extent*1.5;sc.right=sc.top=this.extent*1.5;sc.far=1000;sc.updateProjectionMatrix();
+  this.extent=Math.max(2,...this.meshes.map(m=>m.position.length()+1),...transitions.map(a=>a.p.length()+1));this.receiver.position.y=Math.min(0,...this.meshes.map(m=>m.position.y))-.65;const sc=this.light.shadow.camera;sc.left=sc.bottom=-this.extent*1.5;sc.right=sc.top=this.extent*1.5;sc.far=1000;sc.updateProjectionMatrix();
   this.animating=transitions.length>0;this.updateGizmo(selected);if(this.animating){const start=performance.now();const frame=now=>{if(token!==this.animationToken)return;const t=Math.min(1,(now-start)/180),ease=t*t*(3-2*t);for(const a of transitions){a.m.position.lerpVectors(a.from,a.p,ease);a.m.quaternion.slerpQuaternions(a.rot,a.q,ease)}if(t<1)requestAnimationFrame(frame);else{this.animating=false;this.updateGizmo(this.selectedIds)}this.render()};requestAnimationFrame(frame)}this.render()
  }
  fit(){const n=Math.max(2,this.extent||2);this.camera.position.set(n*1.3,n,n*1.8);this.orbit.target.set(0,0,0);if(this.camera.isOrthographicCamera){this.orthoHeight=n*2.5;this.camera.zoom=1;this.resize()}this.orbit.update();this.render()}
  setLight(a,e){const r=Math.PI/180,d=Math.max(10,(this.extent||2)*3);this.light.position.set(d*Math.cos(e*r)*Math.cos(a*r),d*Math.sin(e*r),d*Math.cos(e*r)*Math.sin(a*r));this.render()}
- setShadows(v){this.receiver.visible=v;this.light.castShadow=v;this.render()}
+ setShadows(v){this.renderer.shadowMap.enabled=v;this.receiver.visible=v;this.light.castShadow=v;this.render()}
 }
