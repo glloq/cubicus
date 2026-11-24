@@ -18,6 +18,7 @@ try {
   });
   await page.goto(base+'/play.html');
   await page.waitForFunction(()=>Boolean(window.fixture));
+  await page.locator('#startPuzzle').click();
   const state=()=>page.evaluate(()=>({
     cubes:fixture.ctl.cubes.map(cube=>({p:cube.p,r:cube.r})),
     spacing:[...fixture.ctl.spacing], mode:fixture.ctl.mode,
@@ -26,6 +27,7 @@ try {
   const upload=async puzzle=>{
     await page.locator('#load').setInputFiles({name:'test.puzzle',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(puzzle))});
     await page.waitForFunction(ids=>ids.every(id=>fixture.ctl.cubes.some(cube=>cube.id===id)),puzzle.cubes.map(cube=>cube.id));
+    await page.locator('#startPuzzle').click();
   };
   const cubes=grid(2,2,1);
   cubes[0].constraints={fixed:true};

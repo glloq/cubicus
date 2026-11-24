@@ -42,13 +42,19 @@ try {
 
   await page.goto(base + '/play.html');
   await page.locator('#view > canvas').waitFor();
-  await page.locator('#playerHelp summary').tap();
+  await page.locator('#playerTutorial[open]').waitFor();
+  await page.locator('#startPuzzle').tap();
+  await page.locator('#playerHelp').tap();
+  await page.locator('#playerTutorial[open]').waitFor();
   assert.match(await page.locator('#playerTips').textContent(),/molette ou le pincement/);
+  await page.locator('#startPuzzle').tap();
   await page.locator('#load').setInputFiles({name:'incorrecte.puzzle',mimeType:'application/json',buffer:Buffer.from('{}')});
   await page.getByRole('status').filter({hasText:'Impossible d’ouvrir cette énigme'}).waitFor();
   assert.equal(await page.locator('#puzzleName').textContent(),'Démonstration');
   await page.locator('#demo').selectOption('1');
   assert.equal(await page.locator('#puzzleMeta').textContent(),'1 fragment');
+  await page.locator('#playerTutorial[open]').waitFor();
+  assert.doesNotMatch(await page.locator('#playerTips').textContent(),/séparation des fragments/);
   assert.equal(await page.locator('#status').textContent(),'');
   assert.deepEqual(errors,[]);
   console.log('Atelier et Player : parcours guidés, inspecteur, volume et mise en page mobile OK');

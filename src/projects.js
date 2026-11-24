@@ -1,3 +1,4 @@
+import {publicTutorial} from './tutorial-topics.js';
 import {mechanismConfig} from './mechanisms.js';
 import {controlRules} from './control-rules.js';
 import {initialView} from './scene-state.js';
@@ -36,6 +37,7 @@ export function readPrivateProject(raw) {
     controls: controlRules(raw.controls),
     mechanisms: mechanismConfig(raw.mechanisms,cubes),
     instructions: publicInstructions(raw.instructions),
+    tutorial: publicTutorial(raw.tutorial),
     proof: Array.isArray(raw.proof) ? raw.proof.slice(0,500) : [],
     mixSeed: typeof raw.mixSeed==='string' ? raw.mixSeed.slice(0,80) : ''
   };

@@ -23,11 +23,23 @@
   <main class="layout player" aria-label="Énigme">
     <section id="view" aria-label="Scène 3D"></section>
     <aside id="controls" aria-label="Commandes de jeu"></aside>
-    <details class="player-help" id="playerHelp">
-      <summary>Aide de jeu</summary>
-      <p id="puzzleObjective" hidden></p><ul id="playerTips"></ul>
-    </details>
+    <button type="button" class="player-help" id="playerHelp" aria-haspopup="dialog">Aide de jeu</button>
   </main>
+  <dialog class="player-tutorial" id="playerTutorial" aria-labelledby="tutorialTitle">
+    <div class="tutorial-content">
+      <h2 id="tutorialTitle">Comment jouer</h2>
+      <p id="puzzleObjective" hidden></p>
+      <h3>Commandes</h3>
+      <ul id="playerTips"></ul>
+      <section id="tutorialMechanisms" aria-labelledby="tutorialMechanismsTitle" hidden>
+        <h3 id="tutorialMechanismsTitle">Mécanismes</h3>
+        <dl id="tutorialTopics"></dl>
+      </section>
+    </div>
+    <form method="dialog" class="tutorial-actions">
+      <button class="primary" id="startPuzzle" autofocus>Jouer</button>
+    </form>
+  </dialog>
   <p id="status" role="status"></p>
   <script type="module" src="./src/player.js"></script>
 </body>

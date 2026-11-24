@@ -56,3 +56,9 @@ Enregistrez des manipulations puis arrêtez l’enregistrement pour revenir aux 
 Dans **Cubes et faces**, créez un calque vectoriel avec une forme, sa position, ses dimensions et sa couleur. L’import de SVG prend en charge les formes et tracés simples et les rasterise. Les repères axiaux du canevas aident à aligner les motifs. Dans **Volume**, vous pouvez remplir ou évider une région entre deux coins de la grille interne.
 
 Les consignes publiées, les appareils et leurs règles sont lisibles dans l’export. Le parcours enregistré reste dans le projet privé.
+
+## Tutoriel à l’ouverture
+
+Le Player affiche une fenêtre d’aide à chaque ouverture d’énigme. Elle réunit la consigne publique, les commandes disponibles et les mécanismes présents. **Jouer** ferme la fenêtre et **Aide de jeu** permet de la rouvrir. L’export HTML autonome conserve ce tutoriel.
+
+Dans **Préparer → Thèmes du tutoriel**, ajoutez les effets dont l’origine est invisible dans le fichier final, comme une anamorphose peinte sur des textures. Les générateurs renseignent ces thèmes et les mécanismes structurés sont expliqués automatiquement.

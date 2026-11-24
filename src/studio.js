@@ -1,3 +1,4 @@
+import {publicTutorial,tutorialTopics} from './tutorial-topics.js';
 import {normalizeVector,vectorImage} from './vector-layer.js';
 import {bindMechanismEditor,emptyMechanisms} from './mechanism-editor.js';
 import {mechanismConfig} from './mechanisms.js';
@@ -82,7 +83,7 @@ function publicSnapshot() {
   }
   const report=controlDiagnostics(actionState(ctl.cubes,rules,publicView?.lighting?.type),publicView);
   if(report.errors.length)throw new Error(report.errors.join(' '));
-  return preparePublicPuzzle(ctl.cubes, rules, publicView, mechanisms, q('publicInstructions').value);
+  return preparePublicPuzzle(ctl.cubes, rules, publicView, mechanisms, q('publicInstructions').value,readTutorialTopics());
 }
 
 bindEmbedExport(publicSnapshot);
@@ -199,6 +200,22 @@ function refreshControlsEditor(){
   groupEditor.refresh();
 }
 function renderRules(){controlEditor.render();}
+const tutorialChoices=q('tutorialTopics');
+for(const [id,[name]] of Object.entries(tutorialTopics)){
+  const label=document.createElement('label');
+  const input=document.createElement('input');
+  input.type='checkbox';
+  input.value=id;
+  input.onchange=scheduleDraft;
+  label.append(input,' '+name);
+  tutorialChoices.append(label);
+}
+function readTutorialTopics(){
+  return publicTutorial([...tutorialChoices.querySelectorAll('input:checked')].map(input=>input.value));
+}
+function setTutorialTopics(ids){
+  for(const input of tutorialChoices.querySelectorAll('input'))input.checked=ids?.includes(input.value)??false;
+}
 q('mixSeed').oninput=q('publicInstructions').oninput=scheduleDraft;
 ctl.onSelectionChange=()=>constraintsEditor.refresh();
 refreshControlsEditor();
@@ -206,7 +223,7 @@ refreshControlsEditor();
 q('muralCreate').onclick=async()=>{const file=q('mural').files[0];if(!file){status('Choisir une image complète');return}const assembly = ctl.cubes;let image;try{image=await createImageBitmap(file);if (ctl.cubes !== assembly) return;const c=muralTiles(image,+q('muralX').value,+q('muralY').value,{
   plane:q('muralPlane').value, angle:+q('muralAngle').value, fill:q('muralFill').checked,
   alpha:q('muralAlpha').checked, offset:[+q('muralOffsetX').value,+q('muralOffsetY').value]
-});ctl.checkpoint();ctl.replace(c);reference=structuredClone(c);referenceView=null;ctl.selected=c[0].id;q('face').value=4;ctl.changed();view.fit(c);status('Fresque créée. Mélanger pour préparer le test.')}catch(e){status(e.message)}finally{image?.close()}};
+});ctl.checkpoint();ctl.replace(c);reference=structuredClone(c);referenceView=null;ctl.selected=c[0].id;q('face').value=4;ctl.changed();view.fit(c);setTutorialTopics(['fresco']);scheduleDraft();status('Fresque créée. Mélanger pour préparer le test.')}catch(e){status(e.message)}finally{image?.close()}};
 
 function captureView() { return captureSceneState(ctl); }
 function restoreView(viewState) { applySceneState(ctl, viewState); }
@@ -228,7 +245,7 @@ q('projectionView').onclick=()=>restoreView(referenceView);
 q('projectImage').onclick=async()=>{const file=q('projectionImage').files[0];if(!file){status('Choisir une image à projeter');return}const assembly = ctl.cubes;let image;const button=q('projectImage');button.disabled=true;try{image=await createImageBitmap(file);if (ctl.cubes !== assembly) return;const pose=captureView();const result=bakeProjection(image,view,ctl.cubes,{resolution:+q('projectionResolution').value,preserve:q('projectionKeep').checked,
 ids:q('projectionSelected').checked?ctl.group().map(c=>c.id):null,
 face:q('projectionFace').checked?+q('face').value:null,
-asLayer:q('projectionLayers').checked});ctl.checkpoint();ctl.replace(result.cubes);reference=structuredClone(result.cubes);referenceView=pose;ctl.selected=result.cubes[0].id;ctl.changed();status(result.count+' faces texturées. Vue privée mémorisée.')}catch(e){status(e.message)}finally{image?.close();button.disabled=false}};
+asLayer:q('projectionLayers').checked});ctl.checkpoint();ctl.replace(result.cubes);reference=structuredClone(result.cubes);referenceView=pose;ctl.selected=result.cubes[0].id;ctl.changed();setTutorialTopics([...readTutorialTopics(),'anamorphosis']);scheduleDraft();status(result.count+' faces texturées. Vue privée mémorisée.')}catch(e){status(e.message)}finally{image?.close();button.disabled=false}};
 
 function refreshMaterial(){const c=selected(),f=+q('face').value;const v=faceOpacity(c?.opacity)[f];q('faceOpacity').value=Math.round(v*100);q('opacityValue').value=Math.round(v*100)+'%';q('alphaFace').checked=alphaFaces(c?.alphaFaces)[f];const material=faceMaterials(c?.materials)[f];
 q('blendFace').checked=material.blend;
@@ -259,7 +276,7 @@ q('materialMode').onchange = event => updateMaterial({mode: event.target.value})
 q('materialColor').onchange = event => updateMaterial({color: event.target.value});
 q('materialReset').onclick = () => updateMaterial({color: null});
 q('neutralMaterials').onchange = event => { view.neutralMaterials = event.target.checked; ctl.draw(); };
-q('overlayCreate').onclick=async()=>{const file=q('overlayImage').files[0];if(!file){status('Choisir une image');return}const assembly = ctl.cubes;let image;try{image=await createImageBitmap(file);if (ctl.cubes !== assembly) return;const c=overlayLayers(image,+q('overlayCount').value,{mode:q('overlayMode').value,depth:+q('overlayDepth').value});ctl.checkpoint();ctl.replace(c);ctl.selected=c[0].id;q('face').value=4;ctl.changed();view.fit(c);if(!view.camera.isOrthographicCamera)view.toggleProjection();const d=view.camera.position.distanceTo(view.orbit.target);view.camera.position.copy(view.orbit.target);view.camera.position.z+=d;view.orbit.update();view.render();reference=structuredClone(c);referenceView=captureView();scheduleDraft();status('Superposition créée. Mélanger les cubes pour tester.')}catch(e){status(e.message)}finally{image?.close()}};
+q('overlayCreate').onclick=async()=>{const file=q('overlayImage').files[0];if(!file){status('Choisir une image');return}const assembly = ctl.cubes;let image;try{image=await createImageBitmap(file);if (ctl.cubes !== assembly) return;const c=overlayLayers(image,+q('overlayCount').value,{mode:q('overlayMode').value,depth:+q('overlayDepth').value});ctl.checkpoint();ctl.replace(c);ctl.selected=c[0].id;q('face').value=4;ctl.changed();view.fit(c);if(!view.camera.isOrthographicCamera)view.toggleProjection();const d=view.camera.position.distanceTo(view.orbit.target);view.camera.position.copy(view.orbit.target);view.camera.position.z+=d;view.orbit.update();view.render();reference=structuredClone(c);referenceView=captureView();scheduleDraft();setTutorialTopics(['overlay']);scheduleDraft();status('Superposition créée. Mélanger les cubes pour tester.')}catch(e){status(e.message)}finally{image?.close()}};
 
 workspaceUI=bindWorkspace({
   resize:()=>view.resize(),
@@ -485,7 +502,7 @@ projects = bindProjects({
     publicView,
     library,
     controls: rules,
-    mechanisms, proof, instructions:q('publicInstructions').value,
+    mechanisms, proof, instructions:q('publicInstructions').value, tutorial:readTutorialTopics(),
     mixSeed: q('mixSeed').value,
     view: captureView()
   }),
@@ -501,6 +518,7 @@ projects = bindProjects({
     mechanisms=project.mechanisms??emptyMechanisms();
     proof=project.proof;
     q('publicInstructions').value=project.instructions;
+    setTutorialTopics(project.tutorial);
     recording=false;
     proofStart=undefined;
     mechanismEditor.stop();
@@ -534,12 +552,13 @@ projects = bindProjects({
 function hasFailedComposition() { return [...failedLayers.values()].some(cube => ctl.cubes.includes(cube)); }
 
 // History snapshots can be taken while another face is still being composited.
-ctl.captureExtra=()=>structuredClone({mechanisms,proof,rules,publicView,reference,referenceView,references:references.list(),instructions:q('publicInstructions').value});
+ctl.captureExtra=()=>structuredClone({mechanisms,proof,rules,publicView,reference,referenceView,references:references.list(),instructions:q('publicInstructions').value,tutorial:readTutorialTopics()});
 ctl.onRestore = extra => {
   if(extra){
     ({mechanisms,proof,rules,publicView,reference,referenceView}=extra);
     references.replace(extra.references);
     q('publicInstructions').value=extra.instructions;
+    setTutorialTopics(extra.tutorial);
     refsAvailable=extra.references.length>0;
     ctl.configureMechanisms(mechanisms);
     renderRules();
@@ -562,6 +581,8 @@ bindSilhouette({
     ctl.setSpacing([0, 0, 0]);
     ctl.changed();
     view.fit(cubes);
+    setTutorialTopics([mode==='shadow'?'shadow':'window']);
+    scheduleDraft();
     if (mode === 'shadow') {
       ctl.applyLighting({type:'directional'});
       q('az').value = 0;
@@ -694,6 +715,7 @@ mechanismEditor=bindMechanismEditor({
     mechanisms=mechanismConfig(sample.mechanisms,sample.cubes)??emptyMechanisms();
     decorateTemplate(sample.cubes,kind);
     q('publicInstructions').value=templateInstructions[kind];
+    setTutorialTopics(kind==='fresco'?['fresco']:kind==='window'?['window']:[]);
     proof=sample.proof;
     rules=sample.controls;
     publicView=null;

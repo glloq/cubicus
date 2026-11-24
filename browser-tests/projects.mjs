@@ -119,6 +119,7 @@ try {
   await page.locator('#playtest[open]').waitFor();
   const player = page.frameLocator('#playtestFrame');
   await player.locator('#view > canvas').waitFor();
+  await player.locator('#startPuzzle').click();
   await player.locator('#reset').click();
   await page.locator('#closePlaytest').click();
   assert.equal(await page.locator('#playtest').isVisible(), false);
@@ -129,6 +130,7 @@ try {
   const observationRules = {
     rotate:false, move:false, groups:false, spacing:false, light:false, shadows:false, zoom:false, projection:false
   };
+  await observation.locator('#startPuzzle').click();
   await observation.locator('#load').setInputFiles({
     name:'observation.puzzle', mimeType:'application/json',
     buffer:Buffer.from(JSON.stringify({...puzzle, controls:observationRules}))

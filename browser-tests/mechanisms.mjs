@@ -48,6 +48,11 @@ try{
   await player.locator('#view > canvas').waitFor();
   const frame=await (await page.locator('#playtestFrame').elementHandle()).contentFrame();
   await frame.waitForFunction(()=>Boolean(globalThis.fixture));
+  await player.locator('#playerTutorial[open]').waitFor();
+  assert.match(await player.locator('#tutorialTopics').textContent(),/États et verrous/);
+  assert.match(await player.locator('#puzzleObjective').textContent(),/cube rouge/);
+  assert.doesNotMatch(await player.locator('#tutorialTopics').textContent(),/premier|s0/);
+  await player.locator('#startPuzzle').click();
   const turned=await frame.evaluate(()=>{
     const ctl=fixture.ctl;
     const ids=ctl.mechanisms.rules.map(rule=>rule.cube);

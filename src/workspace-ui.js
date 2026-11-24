@@ -118,11 +118,18 @@ export function updatePlayerContext(controller, name) {
   byId('puzzleMeta').textContent = count + (count === 1 ? ' fragment' : ' fragments');
   const tips = [];
   if (rules.camera.orbit) tips.push('Glissez pour orbiter en mode Observer, ou utilisez le bouton droit dans la scène.');
+  if (rules.camera.pan) tips.push('Déplacez le cadrage avec le bouton central ou à deux doigts.');
   if (rules.camera.zoom) tips.push('Agrandissez ou éloignez la scène avec la molette ou le pincement.');
   if (tools.rotate) tips.push('Dans Tourner, sélectionnez un fragment puis une poignée de rotation.');
   if (tools.move) tips.push('Dans Déplacer, les contours indiquent les destinations proposées.');
   if (tools.spacing) tips.push('Dans Écarter, ajustez la séparation des fragments.');
   if (tools.light || rules.lighting.shadows) tips.push('Dans Lumière, ajustez les réglages disponibles.');
+  if (rules.camera.perspective && rules.camera.orthographic) tips.push('Ortho bascule vers une vue sans perspective.');
+  if (rules.history.undo || rules.history.redo || rules.history.reset) {
+    const history = [[rules.history.undo,'Annuler'],[rules.history.redo,'Rétablir'],[rules.history.reset,'Réinitialiser']]
+      .filter(([allowed]) => allowed).map(([,label]) => label);
+    tips.push('Historique disponible : ' + history.join(', ') + '.');
+  }
   if (!tips.length) tips.push('Observez l’assemblage depuis sa vue de départ.');
   byId('playerTips').replaceChildren(...tips.map(tip => {
     const item = document.createElement('li');

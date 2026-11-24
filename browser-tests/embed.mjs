@@ -22,6 +22,9 @@ try {
   await studio.locator('#inspectSelection').click();
   await studio.locator('#text').fill('TEST');
   await studio.locator('#textAdd').click();
+  await studio.locator('.studio-tabs [data-stage=prepare]').click();
+  await studio.getByText('Thèmes du tutoriel',{exact:true}).click();
+  await studio.locator('#tutorialTopics input[value=anamorphosis]').check();
   await studio.locator('#embed').click();
   await studio.getByRole('status').filter({hasText:'Fichier HTML prêt'}).waitFor();
   const downloadPromise = studio.waitForEvent('download');
@@ -35,6 +38,7 @@ try {
   assert.equal(payload.cubes.length,1);
   assert.ok(payload.cubes[0].faces.some(face => face?.startsWith('data:image/png;base64,')));
   assert.equal('references' in payload,false);
+  assert.deepEqual(payload.tutorial,['anamorphosis']);
 
   const hosted = await studio.locator('#embedCode').inputValue();
   assert.equal(hosted.split('\n').length,1);
@@ -48,6 +52,9 @@ try {
   async function verifyPlayer(surface) {
     await surface.getByText('1 fragment',{exact:true}).waitFor();
     await surface.locator('#view > canvas').waitFor();
+    await surface.locator('#playerTutorial[open]').waitFor();
+    assert.match(await surface.locator('#tutorialTopics').textContent(),/Anamorphose/);
+    await surface.locator('#startPuzzle').click();
     assert.equal(await surface.locator('#demo').isVisible(),false);
     assert.equal(await surface.locator('#load').isVisible(),false);
     assert.equal(await surface.locator('#status').textContent(),'');

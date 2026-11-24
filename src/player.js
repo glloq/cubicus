@@ -1,3 +1,4 @@
+import {topicsFor,tutorialTopics} from './tutorial-topics.js';
 import {mechanismConfig} from './mechanisms.js';
 import {applySceneState, initialView} from './scene-state.js';
 import {demo} from './demo.js';
@@ -9,6 +10,13 @@ import {updatePlayerContext} from './workspace-ui.js';
 
 const q = id => document.getElementById(id);
 const embedded = q('embeddedPuzzle');
+const tutorial = q('playerTutorial');
+const help = q('playerHelp');
+help.onclick = () => {
+  updatePlayerContext(ctl,q('puzzleName').textContent);
+  if (!tutorial.open) tutorial.showModal();
+};
+tutorial.addEventListener('close', () => help.focus({preventScroll:true}));
 let initial = [];
 let openingView;
 const view = new SceneView(q('view'), id => ctl.select(id));
@@ -46,7 +54,19 @@ function open(data,name) {
   const instructions=publicInstructions(data.instructions);
   q('puzzleObjective').textContent=instructions;
   q('puzzleObjective').hidden=!instructions;
-  q('playerHelp').querySelector('summary').textContent=instructions?'Consigne et commandes':'Aide de jeu';
+  const items = topicsFor(next, mechanisms, data.tutorial);
+  const list = q('tutorialTopics');
+  list.replaceChildren();
+  for (const id of items) {
+    const [title, description] = tutorialTopics[id];
+    const term = document.createElement('dt');
+    const detail = document.createElement('dd');
+    term.textContent = title;
+    detail.textContent = description;
+    list.append(term,detail);
+  }
+  q('tutorialMechanisms').hidden = !items.length;
+  if (!tutorial.open) tutorial.showModal();
   q('status').textContent = '';
 }
 
