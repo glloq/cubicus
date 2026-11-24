@@ -12,5 +12,11 @@ try{
  await player.locator('[data-mode=light]').click();await player.locator('.lighttools summary').click();await player.locator('#shadows').check();
  await player.getByRole('button',{name:'Ortho',exact:true}).click();await player.getByRole('button',{name:'Perspective',exact:true}).click();
  await player.locator('#demo').selectOption('18');await player.locator('[data-mode=rotate]').click();await player.locator('#scope').selectOption('all');await player.locator('.rotationtools summary').click();await player.locator('#rotations button').first().click();await player.locator('#undo').click();await player.locator('#reset').click();
+ // Create a PNG locally; no network fixture or solution is needed.
+ const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=256;c.height=128;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,256,128);x.fillStyle='#111';x.fillRect(20,20,100,80);return c.toDataURL().split(',')[1]});
+ const fixture={name:'fixture.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')};
+ await page.locator('#mural').setInputFiles(fixture);await page.locator('#muralCreate').click();await page.locator('#status').filter({hasText:'Fresque créée'}).waitFor();
+ await page.locator('summary').filter({hasText:'Projection anamorphique'}).click();await page.locator('#projectionImage').setInputFiles(fixture);await page.locator('#projectImage').click();await page.locator('#status').filter({hasText:'faces texturées'}).waitFor();await page.locator('#projectionView').click();
+ await page.waitForTimeout(1000);await page.reload();await page.locator('#recover').click();await page.locator('#status').filter({hasText:'Brouillon récupéré'}).waitFor();
  assert.deepEqual(errors,[]);console.log('Studio → Player smoke OK');
 }finally{await browser.close()}
