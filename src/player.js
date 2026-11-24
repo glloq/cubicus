@@ -12,6 +12,7 @@ const q = id => document.getElementById(id);
 const embedded = q('embeddedPuzzle');
 const tutorial = q('playerTutorial');
 const help = q('playerHelp');
+q('startPuzzle').onclick = () => tutorial.close();
 help.onclick = () => {
   updatePlayerContext(ctl,q('puzzleName').textContent);
   if (!tutorial.open) tutorial.showModal();
