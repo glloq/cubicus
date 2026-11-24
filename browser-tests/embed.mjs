@@ -61,12 +61,14 @@ try {
   }
 
   const offline = await browser.newContext({offline:true});
-  const local = await offline.newPage();
+  let local = await offline.newPage();
   try {
     await local.goto(pathToFileURL(path).href);
   } catch (error) {
     if (!error.message.includes('ERR_BLOCKED_BY_ADMINISTRATOR')) throw error;
     console.log('Les URL file: sont bloquées par Chromium local. Vérification du même fichier sans réseau.');
+    await local.close();
+    local = await offline.newPage();
     await local.setContent(html);
   }
   await verifyPlayer(local);
