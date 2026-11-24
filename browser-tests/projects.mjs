@@ -54,6 +54,28 @@ try {
   assert.equal(await page.locator('#faceZoomValue').textContent(), '200%');
   await page.locator('#fitFace').click();
 
+  const imageBuffer = await page.evaluate(() => {
+    const image = document.createElement('canvas');
+    image.width = image.height = 32;
+    const ctx = image.getContext('2d');
+    ctx.fillStyle = '#e03040';
+    ctx.fillRect(0, 0, 16, 32);
+    return image.toDataURL('image/png').split(',')[1];
+  });
+  await page.locator('#image').setInputFiles({
+    name: 'sample.png', mimeType: 'image/png', buffer: Buffer.from(imageBuffer, 'base64')
+  });
+  await page.locator('#imageImport[open]').waitFor();
+  await page.locator('#importFlipX').check();
+  await page.locator('#importOpacity').fill('50');
+  await page.locator('#applyImageImport').click();
+  const imported = await canvas.evaluate(node => {
+    const ctx = node.getContext('2d');
+    return [ctx.getImageData(100,256,1,1).data[3], ctx.getImageData(410,256,1,1).data[3]];
+  });
+  assert.deepEqual(imported, [0, 128]);
+  assert.equal(await page.locator('#blendFace').isChecked(), true);
+
   await page.locator('#volumeEditor summary').click();
   await page.locator('#volumePreset').selectOption('tunnel');
   await page.locator('#volumeApply').click();
@@ -68,6 +90,14 @@ try {
   assert.equal(puzzle.cubes.filter(fragment => fragment.volume).length, 1);
   assert.equal(puzzle.cubes.find(fragment => fragment.volume).volume.cells.length, 512);
   assert.equal(puzzle.cubes.some(fragment => 'layers' in fragment), false);
+
+  await page.locator('.studio-tabs [data-stage=prepare]').click();
+  await page.locator('#referenceName').fill('Référence Alpha');
+  await page.locator('#reference').click();
+  await page.locator('#duplicateReference').click();
+  assert.equal(await page.locator('#referenceList option').count(), 2);
+  await page.locator('#compareReference').click();
+  assert.match(await page.locator('#referenceComparison').textContent(), /6 poses concordantes/);
 
   await page.locator('#testInline').click();
   await page.locator('#playtest[open]').waitFor();

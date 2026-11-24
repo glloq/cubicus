@@ -1,7 +1,7 @@
 import {exportPuzzle, validate} from './model.js';
 
-export async function preparePublicPuzzle(cubes, controls) {
-  const puzzle = exportPuzzle(cubes, controls);
+export async function preparePublicPuzzle(cubes, controls, publicView) {
+  const puzzle = exportPuzzle(cubes, controls, publicView);
   validate(puzzle);
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');

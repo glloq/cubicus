@@ -1,24 +1,40 @@
+import {SceneMirrors} from './mirrors.js';
+import {faceMaterials} from './materials.js';
 import {meshVolume} from './volume-mesh.js';
 import * as T from 'three';
 import {faceOpacity,alphaFaces} from './model.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 const AXES=['X','Y','Z'], COLORS=[0xee6666,0x66dd88,0x6699ff];
+function hitFace(hit) {
+ const {x, y, z} = hit.face.normal;
+ return x ? (x > 0 ? 0 : 1) : y ? (y > 0 ? 2 : 3) : (z > 0 ? 4 : 5);
+}
 export class SceneView {
  constructor(host,onSelect){
-  this.host=host;this.onSelect=onSelect;this.mode='rotate';this.scene=new T.Scene();this.scene.background=new T.Color(0x151c25);
+  this.mirrors=new SceneMirrors();this.host=host;this.onSelect=onSelect;this.mode='rotate';this.scene=new T.Scene();this.scene.background=new T.Color(0x151c25);
   this.group=new T.Group();this.gizmo=new T.Group();this.scene.add(this.group,this.gizmo);this.handles=[];this.slots=[];this.slotGroup=new T.Group();this.scene.add(this.slotGroup);this.meshes=[];this.cache=new Map();this.selectedIds=[];this.gapDrag=null;
   this.camera=new T.PerspectiveCamera(45,1,.05,1000);this.camera.position.set(5,4,7);
   this.renderer=new T.WebGLRenderer({antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.domElement.setAttribute('aria-label','Scène 3D');host.append(this.renderer.domElement);
   this.renderer.shadowMap.enabled=false;this.renderer.shadowMap.type=T.PCFSoftShadowMap;
   this.scene.add(new T.HemisphereLight(0xffffff,0x526070,1.1));this.light=new T.DirectionalLight(0xffffff,2);this.light.position.set(5,7.071,5);this.light.castShadow=true;this.light.shadow.mapSize.set(1024,1024);this.light.shadow.bias=-.0003;this.scene.add(this.light,this.light.target);
   this.receiver=new T.Mesh(new T.PlaneGeometry(200,200),new T.MeshStandardMaterial({color:0x66717c,roughness:1}));this.receiver.rotation.x=-Math.PI/2;this.receiver.receiveShadow=true;this.receiver.visible=false;this.scene.add(this.receiver);
-  this.geo=new T.BoxGeometry(1,1,1);this.edges=new T.EdgesGeometry(this.geo);this.volumeCache=new Map();this.loader=new T.TextureLoader();this.ray=new T.Raycaster();
+  this.geo=new T.BoxGeometry(1,1,1);this.edges=new T.EdgesGeometry(this.geo);this.volumeCache=new Map();this.plainMaterial=new T.MeshStandardMaterial({color:0x61798c,roughness:.85});this.loader=new T.TextureLoader();this.ray=new T.Raycaster();
   this.makeOrbit();this.initViewTools();this.initInput();
   new ResizeObserver(()=>this.resize()).observe(host);this.resize();
  }
  makeOrbit(target=new T.Vector3()){
   this.orbit?.dispose();this.orbit=new OrbitControls(this.camera,this.renderer.domElement);this.orbit.target.copy(target);
-  this.orbit.mouseButtons={LEFT:this.mode==='select'?T.MOUSE.ROTATE:null,MIDDLE:T.MOUSE.PAN,RIGHT:T.MOUSE.ROTATE};this.orbit.touches={ONE:T.TOUCH.ROTATE,TWO:T.TOUCH.DOLLY_PAN};this.orbit.addEventListener('change',()=>this.render());this.orbit.update();
+  this.orbit.mouseButtons={LEFT:this.mode==='select'?T.MOUSE.ROTATE:null,MIDDLE:T.MOUSE.PAN,RIGHT:T.MOUSE.ROTATE};this.orbit.touches={ONE:T.TOUCH.ROTATE,TWO:T.TOUCH.DOLLY_PAN};this.orbit.addEventListener('change',()=>this.render());this.applyCameraRules();this.orbit.update();
+ }
+ applyCameraRules(rules = this.cameraRules) {
+  this.cameraRules = rules;
+  this.orbit.enableRotate = rules?.observe !== false;
+  this.orbit.enablePan = rules?.observe !== false;
+  this.orbit.enableZoom = rules?.zoom !== false;
+  const tools = this.host.querySelector('.viewtools');
+  if (tools) for (const item of tools.children) {
+   item.hidden = item === this.projectionButton ? rules?.projection === false : rules?.observe === false;
+  }
  }
  resize(){const w=this.host.clientWidth,h=this.host.clientHeight;if(!w||!h)return;this.renderer.setSize(w,h,false);if(this.camera.isPerspectiveCamera)this.camera.aspect=w/h;else{const half=this.orthoHeight/2;this.camera.left=-half*w/h;this.camera.right=half*w/h;this.camera.top=half;this.camera.bottom=-half}this.camera.updateProjectionMatrix();this.render()}
  initViewTools(){const bar=document.createElement('div');bar.className='viewtools';this.host.append(bar);for(const [name,x,y,z] of [['Face',0,0,1],['Dos',0,0,-1],['Droite',1,0,0],['Gauche',-1,0,0],['Haut',0,1,.00001],['Bas',0,-1,.00001],['3D',1,.8,1.4]]){const b=document.createElement('button');b.textContent=name;b.onclick=()=>{const d=this.camera.position.distanceTo(this.orbit.target);this.camera.position.copy(this.orbit.target).add(new T.Vector3(x,y,z).normalize().multiplyScalar(d));this.orbit.update();this.render()};bar.append(b)}const b=document.createElement('button');b.textContent='Ortho';b.onclick=()=>{this.toggleProjection();b.textContent=this.camera.isOrthographicCamera?'Perspective':'Ortho'};bar.append(b);this.projectionButton=b;this.initNavigation(bar)}
@@ -26,9 +42,9 @@ export class SceneView {
  pick(e){const r=this.renderer.domElement.getBoundingClientRect();this.scene.updateMatrixWorld(true);this.camera.updateMatrixWorld(true);this.ray.setFromCamera(new T.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),this.camera)}
  initInput(){const el=this.renderer.domElement;let drag=null,hover=null;const clear=()=>{if(hover){hover.material.color.setHex(0xffcb70);hover=null}this.dropPreview.visible=false;this.clearSlots();this.orbit.enabled=true;drag=null;this.render()};
   this.dropPreview=new T.LineSegments(this.edges,new T.LineBasicMaterial({color:0x80ffbd,depthTest:false}));this.dropPreview.visible=false;this.dropPreview.renderOrder=30;this.scene.add(this.dropPreview);
-  el.addEventListener('pointerdown',e=>{if(e.button!==0||this.animating)return;this.pick(e);const handle=this.ray.intersectObjects(this.handles,false)[0];const hit=this.ray.intersectObjects(this.meshes,false)[0];drag={x:e.clientX,y:e.clientY,id:hit?.object.userData.id,face:hit?.face.materialIndex,handle:handle?.object.userData};if(drag.handle?.kind==='spacing'){const axis=drag.handle.axis,i=AXES.indexOf(axis),direction=new T.Vector3().setComponent(i,1);const origin=handle.object.position.clone(),a=origin.clone().project(this.camera),b=origin.clone().add(direction).project(this.camera),r=el.getBoundingClientRect();const dx=(b.x-a.x)*r.width/2,dy=-(b.y-a.y)*r.height/2;drag.gap={i,dx,dy,value:this.spacing[i],last:this.spacing[i]};this.onGapStart?.()}if(this.mode==='light'||handle||(hit&&this.mode==='move')){el.setPointerCapture(e.pointerId);this.orbit.enabled=false;if(hit&&this.mode==='move')this.showSlots(hit.object.userData.id)}});
+  el.addEventListener('pointerdown',e=>{if(e.button!==0||this.animating)return;this.pick(e);const handle=this.ray.intersectObjects(this.handles,false)[0];const hit=this.ray.intersectObjects(this.meshes,false)[0];drag={x:e.clientX,y:e.clientY,id:hit?.object.userData.id,handle:handle?.object.userData};if(drag.handle?.kind==='spacing'){const axis=drag.handle.axis,i=AXES.indexOf(axis),direction=new T.Vector3().setComponent(i,1);const origin=handle.object.position.clone(),a=origin.clone().project(this.camera),b=origin.clone().add(direction).project(this.camera),r=el.getBoundingClientRect();const dx=(b.x-a.x)*r.width/2,dy=-(b.y-a.y)*r.height/2;drag.gap={i,dx,dy,value:this.spacing[i],last:this.spacing[i]};this.onGapStart?.()}if(this.mode==='light'||handle||(hit&&this.mode==='move')){el.setPointerCapture(e.pointerId);this.orbit.enabled=false;if(hit&&this.mode==='move')this.showSlots(hit.object.userData.id)}});
   el.addEventListener('pointermove',e=>{if(!drag)return;if(drag.gap){const g=drag.gap,den=g.dx*g.dx+g.dy*g.dy;if(den>25){g.last=Math.max(0,Math.min(2,g.value+((e.clientX-drag.x)*g.dx+(e.clientY-drag.y)*g.dy)/den/Math.max(1,this.axisSpan(g.i))));this.onGapDrag?.(g.i,g.last)}return}if(this.mode==='light'){this.onLightDrag?.((e.clientX-drag.x)*.6,(drag.y-e.clientY)*.6);drag.x=e.clientX;drag.y=e.clientY;return}if(this.mode!=='move'||!drag.id)return;this.pick(e);const hit=this.ray.intersectObjects(this.meshes,false).find(h=>h.object.userData.id!==drag.id);const slot=this.ray.intersectObjects(this.slots,false)[0];this.dropPreview.visible=!!(hit||slot);if(hit)this.dropPreview.position.copy(hit.object.position);else if(slot)this.dropPreview.position.copy(slot.object.position);this.render()});
-  el.addEventListener('pointerup',e=>{if(!drag||e.button!==0)return;const a=drag,d=Math.hypot(e.clientX-a.x,e.clientY-a.y);this.pick(e);const hit=this.ray.intersectObjects(this.meshes,false)[0],slot=this.ray.intersectObjects(this.slots,false)[0];clear();if(a.gap){this.onGapEnd?.();return;}if(this.mode==='light')return;if(a.handle&&d<15){this.onHandle?.(a.handle);return}if(this.mode==='move'&&a.id&&hit&&hit.object.userData.id!==a.id&&d>5){this.onDrop?.(a.id,hit.object.userData.id);return}if(this.mode==='move'&&a.id&&slot&&d>5){this.onMoveSlot?.(a.id,slot.object.userData.slot);return}if(d<5&&hit)this.onSelect(hit.object.userData.id,hit.face.materialIndex)});
+  el.addEventListener('pointerup',e=>{if(!drag||e.button!==0)return;const a=drag,d=Math.hypot(e.clientX-a.x,e.clientY-a.y);this.pick(e);const hit=this.ray.intersectObjects(this.meshes,false)[0],slot=this.ray.intersectObjects(this.slots,false)[0];clear();if(a.gap){this.onGapEnd?.();return;}if(this.mode==='light')return;if(a.handle&&d<15){this.onHandle?.(a.handle);return}if(this.mode==='move'&&a.id&&hit&&hit.object.userData.id!==a.id&&d>5){this.onDrop?.(a.id,hit.object.userData.id);return}if(this.mode==='move'&&a.id&&slot&&d>5){this.onMoveSlot?.(a.id,slot.object.userData.slot);return}if(d<5&&hit)this.onSelect(hit.object.userData.id,hitFace(hit))});
   const cancel=()=>{if(!drag)return;const spacing=Boolean(drag.gap);clear();if(spacing)this.onGapEnd?.()};
   el.addEventListener('pointercancel',cancel);el.addEventListener('lostpointercapture',cancel);
  }
@@ -38,7 +54,7 @@ export class SceneView {
  setMode(mode){this.mode=mode;this.orbit.mouseButtons.LEFT=mode==='select'?T.MOUSE.ROTATE:null;this.renderer.domElement.style.cursor=mode==='move'?'grab':mode==='light'||mode==='spacing'?'crosshair':mode==='select'?'grab':'default';this.updateGizmo(this.selectedIds);this.render()}
  updateGizmo(selected){this.selectedIds=selected;for(const h of this.handles){this.gizmo.remove(h);h.geometry.dispose();h.material.dispose()}this.handles=[];if(this.mode==='spacing'){this.makeSpacingHandles();return}if(this.mode!=='rotate'||!selected.length||this.animating)return;const meshes=this.meshes.filter(m=>selected.includes(m.userData.id));if(!meshes.length)return;const b=new T.Box3();for(const m of meshes)b.expandByPoint(m.position);const center=b.getCenter(new T.Vector3()),radius=Math.max(.85,b.getSize(new T.Vector3()).length()/2+.85);for(const [i,axis] of AXES.entries())for(const sign of [-1,1]){const r=radius+i*.12,h=new T.Mesh(new T.TorusGeometry(r,.055,8,30,Math.PI*.68),new T.MeshBasicMaterial({color:COLORS[i],depthTest:false}));h.position.copy(center);if(axis==='X')h.rotation.y=Math.PI/2;if(axis==='Y')h.rotation.x=-Math.PI/2;h.rotateZ(sign<0?Math.PI:0);h.renderOrder=20;h.userData={axis,sign};this.gizmo.add(h);this.handles.push(h);const a=sign>0?Math.PI*.68:0,arrow=new T.Mesh(new T.ConeGeometry(.14,.3,10),new T.MeshBasicMaterial({color:COLORS[i],depthTest:false}));arrow.position.set(r*Math.cos(a),r*Math.sin(a),0).applyQuaternion(h.quaternion).add(center);arrow.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),new T.Vector3(-Math.sin(a)*sign,Math.cos(a)*sign,0).applyQuaternion(h.quaternion));arrow.userData={axis,sign};arrow.renderOrder=21;this.gizmo.add(arrow);this.handles.push(arrow)}}
  makeSpacingHandles(){if(!this.meshes.length||this.animating)return;const b=new T.Box3();for(const m of this.meshes)b.expandByPoint(m.position);for(let i=0;i<3;i++){if(this.axisSpan(i)===1&&this.cubes.every(c=>c.p[i]===this.cubes[0].p[i]))continue;const dir=new T.Vector3().setComponent(i,1);const h=new T.Mesh(new T.ConeGeometry(.15,.36,16),new T.MeshBasicMaterial({color:COLORS[i],depthTest:false}));h.position.copy(dir).multiplyScalar(b.max.getComponent(i)+.95);h.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),dir);h.userData={kind:'spacing',axis:AXES[i]};h.renderOrder=22;this.gizmo.add(h);this.handles.push(h)}}
- render(){this.renderer.render(this.scene,this.camera);this.updateNavigation()}
+ render(){this.mirrors.setProjection(this.camera);this.renderer.render(this.scene,this.camera);this.updateNavigation()}
  updateNavigation(){if(!this.navCube)return;this.navCamera.quaternion.copy(this.camera.quaternion);this.navCamera.position.set(0,0,4).applyQuaternion(this.camera.quaternion);this.navCamera.updateMatrixWorld(true);this.navRenderer.render(this.navScene,this.navCamera)}
  initNavigation(bar){
   this.navScene=new T.Scene();this.navCamera=new T.OrthographicCamera(-1.35,1.35,1.35,-1.35,.1,20);this.navCamera.position.z=4;
@@ -64,14 +80,48 @@ export class SceneView {
     m.children[0].geometry = cached?.edges ?? this.edges;
     m.userData.volumeKey = volumeKey;
    }
-   const opacity=faceOpacity(c.opacity),alpha=alphaFaces(c.alphaFaces),key=c.faces.join('|')+'|'+opacity.join(',')+'|'+alpha.join(',');if(m.userData.faceKey!==key){m.material.forEach(x=>x.dispose());m.material=c.faces.map((f,i)=>new T.MeshStandardMaterial({color:f?0xffffff:0x61798c,map:this.texture(f),roughness:.85,transparent:opacity[i]<1,alphaTest:alpha[i]?0.5:0,opacity:opacity[i],depthWrite:opacity[i]===1,visible:opacity[i]>0,side:alpha[i]?T.DoubleSide:T.FrontSide}));m.userData.faceKey=key;m.castShadow=opacity.every(v=>v===1)&&!alpha.some(Boolean)}
+   const opacity = faceOpacity(c.opacity);
+   const alpha = alphaFaces(c.alphaFaces);
+   const materials = faceMaterials(c.materials);
+   const key = JSON.stringify([opacity, alpha, materials, this.neutralMaterials]);
+   if (m.userData.faceKey !== key || c.faces.some((source, i) => source !== m.userData.sources?.[i])) {
+    if (Array.isArray(m.material)) m.material.forEach(material => material.dispose());
+    const plain = !this.neutralMaterials && !c.faces.some(Boolean) && opacity.every(value => value === 1)
+      && !alpha.some(Boolean) && materials.every(({mode, color, blend}) => mode === 'lit' && !color && !blend);
+    m.material = plain ? this.plainMaterial : c.faces.map((source, i) => {
+     const {mode, color, blend} = materials[i];
+     const tint = color ?? (source ? 0xffffff : 0x61798c);
+     const transparent = blend || opacity[i] < 1;
+     const options = {
+      color: this.neutralMaterials ? (source ? 0xffffff : 0x61798c) : tint,
+      map: this.texture(source),
+      transparent,
+      alphaTest: alpha[i] ? .5 : 0,
+      opacity: opacity[i],
+      depthWrite: !transparent,
+      visible: opacity[i] > 0,
+      side: alpha[i] ? T.DoubleSide : T.FrontSide
+     };
+     if (mode === 'unlit' || this.neutralMaterials) return new T.MeshBasicMaterial(options);
+     if (mode === 'emissive') {
+      options.emissive = tint;
+      options.emissiveMap = options.map;
+      options.emissiveIntensity = .8;
+     }
+     return new T.MeshStandardMaterial({...options, roughness: .85});
+    });
+    m.userData.faceKey = key;
+    m.userData.sources = [...c.faces];
+    m.castShadow = opacity.every(value => value === 1) && !materials.some(material => material.blend);
+   }
    const p=new T.Vector3(...c.p.map((v,i)=>(v-center[i])*(1+spacing[i]))),r=c.r,q=new T.Quaternion().setFromRotationMatrix(new T.Matrix4().set(r[0],r[1],r[2],0,r[3],r[4],r[5],0,r[6],r[7],r[8],0,0,0,0,1));if(animate&&m.userData.placed)transitions.push({m,p,q,from:m.position.clone(),rot:m.quaternion.clone()});else{m.position.copy(p);m.quaternion.copy(q)}m.userData.placed=true;m.children[0].visible=selected.includes(c.id)&&this.mode!=='select';this.meshes.push(m)}
-  for(const m of old.values()){this.group.remove(m);m.material.forEach(x=>x.dispose());m.children[0].material.dispose()}
+  for(const m of old.values()){this.group.remove(m);if(Array.isArray(m.material))m.material.forEach(x=>x.dispose());m.children[0].material.dispose()}
   for (const [key, volume] of this.volumeCache) if (!activeVolumes.has(key)) {
    volume.mesh.dispose();
    volume.edges.dispose();
    this.volumeCache.delete(key);
   }
+  this.mirrors.update(this.meshes, cubes, this.neutralMaterials);
   const used=new Set(cubes.flatMap(c=>c.faces).filter(Boolean));for(const [k,t] of this.cache)if(!used.has(k)){t.dispose();this.cache.delete(k)}
   this.extent=Math.max(2,...this.meshes.map(m=>m.position.length()+1),...transitions.map(a=>a.p.length()+1));this.receiver.position.y=Math.min(0,...this.meshes.map(m=>m.position.y))-.65;const sc=this.light.shadow.camera;sc.left=sc.bottom=-this.extent*1.5;sc.right=sc.top=this.extent*1.5;sc.far=1000;sc.updateProjectionMatrix();
   this.animating=transitions.length>0;this.updateGizmo(selected);if(this.animating){const start=performance.now();const frame=now=>{if(token!==this.animationToken)return;const t=Math.min(1,(now-start)/180),ease=t*t*(3-2*t);for(const a of transitions){a.m.position.lerpVectors(a.from,a.p,ease);a.m.quaternion.slerpQuaternions(a.rot,a.q,ease)}if(t<1)requestAnimationFrame(frame);else{this.animating=false;this.updateGizmo(this.selectedIds)}this.render()};requestAnimationFrame(frame)}this.render()

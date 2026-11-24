@@ -28,3 +28,14 @@ test('history keeps the latest entries and discards redo on a new edit', () => {
   history.record(2);
   assert.equal(history.forward(() => assert.fail('Redo branch should be gone')), undefined);
 });
+
+test('a collection of private references survives project parsing and stays private', () => {
+  const fragment = cube();
+  const privateProject = readPrivateProject({
+    version: 2,
+    cubes: [fragment],
+    references: [{name: 'Vue haute', notes: 'Note privée', cubes: [fragment], view: {zoom: 2}}]
+  });
+  assert.equal(privateProject.references[0].notes, 'Note privée');
+  assert.notEqual(privateProject.references[0].cubes[0], privateProject.cubes[0]);
+});

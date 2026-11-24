@@ -58,3 +58,7 @@
 #playtest { width: min(1100px, 96vw); height: 91dvh; padding: 8px; color: inherit; background: #202832; border: 1px solid #526477; }
 #playtest::backdrop { background: #10151bd9; }
 #playtestFrame { width: 100%; height: calc(100% - 42px); border: 0; margin-top: 6px; }
+#imageImport { max-height: 96dvh; color: inherit; background: #202832; border: 1px solid #526477; }
+#imageImport::backdrop { background: #10151bd9; }
+#imagePreview { display: block; width: min(420px, 75vw, 43vh); touch-action: none; background: repeating-conic-gradient(#3b4856 0% 25%, #26333f 0% 50%) 0 0 / 20px 20px; }
+#silhouettePreview { display: block; width: min(100%, 150px); image-rendering: pixelated; }

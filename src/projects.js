@@ -1,3 +1,4 @@
+import {initialView} from './scene-state.js';
 import { validateProjectCubes } from './layers.js';
 import { publicControls, validate } from './model.js';
 
@@ -6,13 +7,28 @@ const HISTORY_LIMIT = 3;
 export function readPrivateProject(raw) {
   const parseCubes = cubes => validateProjectCubes(cubes, validate({version: 1, cubes}));
   if (![1, 2].includes(raw?.version)) throw new Error('Version de projet inconnue');
+  const oldReference = raw.reference ? parseCubes(raw.reference) : null;
+  const references = Array.isArray(raw.references)
+    ? raw.references.slice(0, 16).map(item => ({
+        id: crypto.randomUUID(),
+        name: normalizeName(item.name),
+        notes: typeof item.notes === 'string' ? item.notes.slice(0, 1000) : '',
+        cubes: parseCubes(item.cubes),
+        view: item.view ?? null
+      }))
+    : oldReference ? [{
+        id: crypto.randomUUID(), name: 'Conception', notes: '',
+        cubes: oldReference, view: raw.referenceView ?? null
+      }] : [];
   return {
     version: 2,
     name: normalizeName(raw.name),
     cubes: parseCubes(raw.cubes),
-    reference: raw.reference ? parseCubes(raw.reference) : null,
+    reference: oldReference,
+    references,
     referenceView: raw.referenceView ?? null,
     view: raw.view ?? null,
+    publicView: initialView(raw.publicView),
     library: Array.isArray(raw.library) ? raw.library.map(cube => parseCubes([cube])[0]) : [],
     controls: publicControls(raw.controls)
   };
