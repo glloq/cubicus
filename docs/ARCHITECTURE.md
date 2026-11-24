@@ -4,7 +4,7 @@
 - Arbitrary occupancy of an integer 3D grid. The initial grid generator supports 1–8 cells per axis, up to 512 cubes.
 - Cube orientation is an exact signed permutation matrix (24 valid orientations), world-axis quarter-turns only.
 - Camera orbit and directional lighting remain continuous, independently of cubes.
-- Line and layer selection currently rotate each member around its own center; collective permutation of positions is a separate future operation.
+- Line and layer selection support per-cube rotation or optional rigid group rotation; invalid grid positions and collisions reject the whole operation.
 - Spacing modifies displayed positions, not logical slots.
 - No answer input, solution checking, target detection or reveal triggers in Player. External server is responsible for validation.
 
@@ -18,4 +18,7 @@ Never publish private project files or answer data to the public repository. The
 Enable Settings > Pages > Build and deployment > Source: GitHub Actions. Run Deploy Cubicus. Pages artifact is limited to the three HTML pages and src. Three.js 0.180.0 is pinned via CDN; network access is required. No bundler in V0.1.
 
 ## Remaining work
-Dedicated reusable cube library, vector editing and non-destructive drawing layers, movement into empty cells, rigid layer rotation and collision checking, per-level public control flags, orthographic camera, shadow receiver and transparency, browser integration tests, texture memory optimization, private project autosave, export security audit. No real puzzle content yet.
+Persistent reusable library across projects, vector editing and non-destructive drawing layers, per-level public control flags, orthographic camera, shadow receiver and transparency, browser integration tests, texture memory optimization, private project autosave, export security audit. Textured 1/4/18-cube manipulation demos are available; they are not authored riddles yet.
+
+## V0.2 playtest
+Studio includes a six-face thumbnail net, text stamping, project-local reusable cube models, and movement by one cell along each axis. Player includes textured demos. Public exports randomize array order and IDs. Enable GitHub Pages manually if configure-pages fails. The prior CI passed; browser validation remains pending.
