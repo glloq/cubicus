@@ -1,3 +1,4 @@
+import {meshVolume} from './volume-mesh.js';
 import * as T from 'three';
 import {faceOpacity,alphaFaces} from './model.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
@@ -11,7 +12,7 @@ export class SceneView {
   this.renderer.shadowMap.enabled=false;this.renderer.shadowMap.type=T.PCFSoftShadowMap;
   this.scene.add(new T.HemisphereLight(0xffffff,0x526070,1.1));this.light=new T.DirectionalLight(0xffffff,2);this.light.position.set(5,7.071,5);this.light.castShadow=true;this.light.shadow.mapSize.set(1024,1024);this.light.shadow.bias=-.0003;this.scene.add(this.light,this.light.target);
   this.receiver=new T.Mesh(new T.PlaneGeometry(200,200),new T.MeshStandardMaterial({color:0x66717c,roughness:1}));this.receiver.rotation.x=-Math.PI/2;this.receiver.receiveShadow=true;this.receiver.visible=false;this.scene.add(this.receiver);
-  this.geo=new T.BoxGeometry(1,1,1);this.edges=new T.EdgesGeometry(this.geo);this.loader=new T.TextureLoader();this.ray=new T.Raycaster();
+  this.geo=new T.BoxGeometry(1,1,1);this.edges=new T.EdgesGeometry(this.geo);this.volumeCache=new Map();this.loader=new T.TextureLoader();this.ray=new T.Raycaster();
   this.makeOrbit();this.initViewTools();this.initInput();
   new ResizeObserver(()=>this.resize()).observe(host);this.resize();
  }
@@ -25,10 +26,11 @@ export class SceneView {
  pick(e){const r=this.renderer.domElement.getBoundingClientRect();this.scene.updateMatrixWorld(true);this.camera.updateMatrixWorld(true);this.ray.setFromCamera(new T.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),this.camera)}
  initInput(){const el=this.renderer.domElement;let drag=null,hover=null;const clear=()=>{if(hover){hover.material.color.setHex(0xffcb70);hover=null}this.dropPreview.visible=false;this.clearSlots();this.orbit.enabled=true;drag=null;this.render()};
   this.dropPreview=new T.LineSegments(this.edges,new T.LineBasicMaterial({color:0x80ffbd,depthTest:false}));this.dropPreview.visible=false;this.dropPreview.renderOrder=30;this.scene.add(this.dropPreview);
-  el.addEventListener('pointerdown',e=>{if(e.button!==0||this.animating)return;this.pick(e);const handle=this.ray.intersectObjects(this.handles,false)[0];const hit=this.ray.intersectObjects(this.meshes,false)[0];drag={x:e.clientX,y:e.clientY,id:hit?.object.userData.id,face:hit?.face.materialIndex,handle:handle?.object.userData};if(drag.handle?.kind==='spacing'){const axis=drag.handle.axis,i=AXES.indexOf(axis),direction=new T.Vector3().setComponent(i,1);const origin=handle.object.position.clone(),a=origin.clone().project(this.camera),b=origin.clone().add(direction).project(this.camera),r=el.getBoundingClientRect();const dx=(b.x-a.x)*r.width/2,dy=-(b.y-a.y)*r.height/2;drag.gap={i,dx,dy,value:this.spacing[i],last:this.spacing[i]}}if(this.mode==='light'||handle||(hit&&this.mode==='move')){el.setPointerCapture(e.pointerId);this.orbit.enabled=false;if(hit&&this.mode==='move')this.showSlots(hit.object.userData.id)}});
+  el.addEventListener('pointerdown',e=>{if(e.button!==0||this.animating)return;this.pick(e);const handle=this.ray.intersectObjects(this.handles,false)[0];const hit=this.ray.intersectObjects(this.meshes,false)[0];drag={x:e.clientX,y:e.clientY,id:hit?.object.userData.id,face:hit?.face.materialIndex,handle:handle?.object.userData};if(drag.handle?.kind==='spacing'){const axis=drag.handle.axis,i=AXES.indexOf(axis),direction=new T.Vector3().setComponent(i,1);const origin=handle.object.position.clone(),a=origin.clone().project(this.camera),b=origin.clone().add(direction).project(this.camera),r=el.getBoundingClientRect();const dx=(b.x-a.x)*r.width/2,dy=-(b.y-a.y)*r.height/2;drag.gap={i,dx,dy,value:this.spacing[i],last:this.spacing[i]};this.onGapStart?.()}if(this.mode==='light'||handle||(hit&&this.mode==='move')){el.setPointerCapture(e.pointerId);this.orbit.enabled=false;if(hit&&this.mode==='move')this.showSlots(hit.object.userData.id)}});
   el.addEventListener('pointermove',e=>{if(!drag)return;if(drag.gap){const g=drag.gap,den=g.dx*g.dx+g.dy*g.dy;if(den>25){g.last=Math.max(0,Math.min(2,g.value+((e.clientX-drag.x)*g.dx+(e.clientY-drag.y)*g.dy)/den/Math.max(1,this.axisSpan(g.i))));this.onGapDrag?.(g.i,g.last)}return}if(this.mode==='light'){this.onLightDrag?.((e.clientX-drag.x)*.6,(drag.y-e.clientY)*.6);drag.x=e.clientX;drag.y=e.clientY;return}if(this.mode!=='move'||!drag.id)return;this.pick(e);const hit=this.ray.intersectObjects(this.meshes,false).find(h=>h.object.userData.id!==drag.id);const slot=this.ray.intersectObjects(this.slots,false)[0];this.dropPreview.visible=!!(hit||slot);if(hit)this.dropPreview.position.copy(hit.object.position);else if(slot)this.dropPreview.position.copy(slot.object.position);this.render()});
-  el.addEventListener('pointerup',e=>{if(!drag||e.button!==0)return;const a=drag,d=Math.hypot(e.clientX-a.x,e.clientY-a.y);this.pick(e);const hit=this.ray.intersectObjects(this.meshes,false)[0],slot=this.ray.intersectObjects(this.slots,false)[0];clear();if(a.gap)return;if(this.mode==='light')return;if(a.handle&&d<15){this.onHandle?.(a.handle);return}if(this.mode==='move'&&a.id&&hit&&hit.object.userData.id!==a.id&&d>5){this.onDrop?.(a.id,hit.object.userData.id);return}if(this.mode==='move'&&a.id&&slot&&d>5){this.onMoveSlot?.(a.id,slot.object.userData.slot);return}if(d<5&&hit)this.onSelect(hit.object.userData.id,hit.face.materialIndex)});
-  el.addEventListener('pointercancel',clear);el.addEventListener('lostpointercapture',()=>{if(drag)clear()});
+  el.addEventListener('pointerup',e=>{if(!drag||e.button!==0)return;const a=drag,d=Math.hypot(e.clientX-a.x,e.clientY-a.y);this.pick(e);const hit=this.ray.intersectObjects(this.meshes,false)[0],slot=this.ray.intersectObjects(this.slots,false)[0];clear();if(a.gap){this.onGapEnd?.();return;}if(this.mode==='light')return;if(a.handle&&d<15){this.onHandle?.(a.handle);return}if(this.mode==='move'&&a.id&&hit&&hit.object.userData.id!==a.id&&d>5){this.onDrop?.(a.id,hit.object.userData.id);return}if(this.mode==='move'&&a.id&&slot&&d>5){this.onMoveSlot?.(a.id,slot.object.userData.slot);return}if(d<5&&hit)this.onSelect(hit.object.userData.id,hit.face.materialIndex)});
+  const cancel=()=>{if(!drag)return;const spacing=Boolean(drag.gap);clear();if(spacing)this.onGapEnd?.()};
+  el.addEventListener('pointercancel',cancel);el.addEventListener('lostpointercapture',cancel);
  }
  clearSlots(){for(const m of this.slots){this.slotGroup.remove(m);m.material.dispose();m.children[0].material.dispose()}this.slots=[]}
  showSlots(id){this.clearSlots();const c=this.cubes?.find(c=>c.id===id);if(!c)return;const used=new Set(this.cubes.map(c=>c.p.join(',')));for(let axis=0;axis<3;axis++)for(const sign of [-1,1]){const p=[...c.p];p[axis]+=sign;if(used.has(p.join(','))||p.some(v=>Math.abs(v)>100))continue;const m=new T.Mesh(this.geo,new T.MeshBasicMaterial({color:0x6cd9b9,transparent:true,opacity:.14,depthWrite:false}));m.position.set(...p.map((v,i)=>(v-this.center[i])*(1+this.spacing[i])));m.userData.slot=p;m.add(new T.LineSegments(this.edges,new T.LineBasicMaterial({color:0x6cd9b9})));this.slotGroup.add(m);this.slots.push(m)}this.render()}
@@ -48,11 +50,28 @@ export class SceneView {
   this.updateNavigation();
  }
  texture(src){if(!src)return null;if(!this.cache.has(src)){const t=this.loader.load(src,()=>this.render());t.colorSpace=T.SRGBColorSpace;this.cache.set(src,t)}return this.cache.get(src)}
- update(cubes,selected=[],spacing=[.12,.12,.12],animate=false){this.animationToken=(this.animationToken||0)+1;const token=this.animationToken;const old=new Map(this.meshes.map(m=>[m.userData.id,m]));const center=[0,1,2].map(i=>cubes.length?(Math.min(...cubes.map(c=>c.p[i]))+Math.max(...cubes.map(c=>c.p[i])))/2:0);this.cubes=cubes;this.center=center;this.spacing=spacing;const transitions=[];this.meshes=[];
+ update(cubes,selected=[],spacing=[.12,.12,.12],animate=false){this.animationToken=(this.animationToken||0)+1;const token=this.animationToken;const old=new Map(this.meshes.map(m=>[m.userData.id,m]));const center=[0,1,2].map(i=>cubes.length?(Math.min(...cubes.map(c=>c.p[i]))+Math.max(...cubes.map(c=>c.p[i])))/2:0);this.cubes=cubes;this.center=center;this.spacing=spacing;const transitions=[];const activeVolumes=new Set();this.meshes=[];
   for(const c of cubes){let m=old.get(c.id);if(m){old.delete(c.id)}else{m=new T.Mesh(this.geo,[]);this.group.add(m);m.userData.id=c.id;m.castShadow=true;m.receiveShadow=true;const line=new T.LineSegments(this.edges,new T.LineBasicMaterial({color:0xffcb70}));m.add(line)}
+   const volumeKey = c.volume ? c.volume.size + ':' + c.volume.cells : null;
+   if (volumeKey) activeVolumes.add(volumeKey);
+   if (m.userData.volumeKey !== volumeKey) {
+    if (volumeKey && !this.volumeCache.has(volumeKey)) {
+      const mesh = meshVolume(c.volume);
+      this.volumeCache.set(volumeKey, {mesh, edges: new T.EdgesGeometry(mesh)});
+    }
+    const cached = this.volumeCache.get(volumeKey);
+    m.geometry = cached?.mesh ?? this.geo;
+    m.children[0].geometry = cached?.edges ?? this.edges;
+    m.userData.volumeKey = volumeKey;
+   }
    const opacity=faceOpacity(c.opacity),alpha=alphaFaces(c.alphaFaces),key=c.faces.join('|')+'|'+opacity.join(',')+'|'+alpha.join(',');if(m.userData.faceKey!==key){m.material.forEach(x=>x.dispose());m.material=c.faces.map((f,i)=>new T.MeshStandardMaterial({color:f?0xffffff:0x61798c,map:this.texture(f),roughness:.85,transparent:opacity[i]<1,alphaTest:alpha[i]?0.5:0,opacity:opacity[i],depthWrite:opacity[i]===1,visible:opacity[i]>0,side:alpha[i]?T.DoubleSide:T.FrontSide}));m.userData.faceKey=key;m.castShadow=opacity.every(v=>v===1)&&!alpha.some(Boolean)}
    const p=new T.Vector3(...c.p.map((v,i)=>(v-center[i])*(1+spacing[i]))),r=c.r,q=new T.Quaternion().setFromRotationMatrix(new T.Matrix4().set(r[0],r[1],r[2],0,r[3],r[4],r[5],0,r[6],r[7],r[8],0,0,0,0,1));if(animate&&m.userData.placed)transitions.push({m,p,q,from:m.position.clone(),rot:m.quaternion.clone()});else{m.position.copy(p);m.quaternion.copy(q)}m.userData.placed=true;m.children[0].visible=selected.includes(c.id)&&this.mode!=='select';this.meshes.push(m)}
   for(const m of old.values()){this.group.remove(m);m.material.forEach(x=>x.dispose());m.children[0].material.dispose()}
+  for (const [key, volume] of this.volumeCache) if (!activeVolumes.has(key)) {
+   volume.mesh.dispose();
+   volume.edges.dispose();
+   this.volumeCache.delete(key);
+  }
   const used=new Set(cubes.flatMap(c=>c.faces).filter(Boolean));for(const [k,t] of this.cache)if(!used.has(k)){t.dispose();this.cache.delete(k)}
   this.extent=Math.max(2,...this.meshes.map(m=>m.position.length()+1),...transitions.map(a=>a.p.length()+1));this.receiver.position.y=Math.min(0,...this.meshes.map(m=>m.position.y))-.65;const sc=this.light.shadow.camera;sc.left=sc.bottom=-this.extent*1.5;sc.right=sc.top=this.extent*1.5;sc.far=1000;sc.updateProjectionMatrix();
   this.animating=transitions.length>0;this.updateGizmo(selected);if(this.animating){const start=performance.now();const frame=now=>{if(token!==this.animationToken)return;const t=Math.min(1,(now-start)/180),ease=t*t*(3-2*t);for(const a of transitions){a.m.position.lerpVectors(a.from,a.p,ease);a.m.quaternion.slerpQuaternions(a.rot,a.q,ease)}if(t<1)requestAnimationFrame(frame);else{this.animating=false;this.updateGizmo(this.selectedIds)}this.render()};requestAnimationFrame(frame)}this.render()

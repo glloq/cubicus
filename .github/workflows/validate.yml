@@ -1,5 +1,7 @@
 name: Validate Cubicus
-on: [push, pull_request]
+on:
+  pull_request:
+  workflow_call:
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -10,3 +12,5 @@ jobs:
           node-version: 22
       - run: npm run check
       - run: npm test
+  browser:
+    uses: ./.github/workflows/browser.yml
