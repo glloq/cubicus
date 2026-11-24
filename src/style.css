@@ -23,3 +23,5 @@
 .player #controls[data-mode=spacing] .selectiontools{display:none}.player #controls:not([data-mode=spacing]) .spacingtools{display:none}.player #controls[data-mode=spacing] .toolstrip button[data-mode=spacing]{background:#386d79}.player #controls .toolstrip button{white-space:nowrap}
 
 #view .viewtools canvas{width:104px;height:104px;display:block;cursor:pointer;flex-basis:100%;object-fit:contain}.viewtools{width:180px;align-items:center}.viewtools button{font-size:10px}.viewtools canvas{margin-left:auto}
+
+#view .viewtools canvas{flex:0 0 104px;width:104px;height:104px;object-fit:fill}.viewtools{max-width:180px}.selectionCount{font-size:12px;color:#a9c5d0;white-space:nowrap}
