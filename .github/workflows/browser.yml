@@ -1,0 +1,15 @@
+name: Browser smoke
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save --package-lock=false playwright@1.51.1
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          python3 -m http.server 8080 > /tmp/cubicus-http.log 2>&1 &
+          node browser-tests/smoke.mjs
