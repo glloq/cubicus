@@ -7,7 +7,7 @@ export class SceneView {
   this.host=host;this.onSelect=onSelect;this.mode='rotate';this.scene=new T.Scene();this.scene.background=new T.Color(0x151c25);
   this.group=new T.Group();this.gizmo=new T.Group();this.scene.add(this.group,this.gizmo);this.handles=[];this.slots=[];this.slotGroup=new T.Group();this.scene.add(this.slotGroup);this.meshes=[];this.cache=new Map();this.selectedIds=[];this.gapDrag=null;
   this.camera=new T.PerspectiveCamera(45,1,.05,1000);this.camera.position.set(5,4,7);
-  this.renderer=new T.WebGLRenderer({antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));host.append(this.renderer.domElement);
+  this.renderer=new T.WebGLRenderer({antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.domElement.setAttribute('aria-label','Scène 3D');host.append(this.renderer.domElement);
   this.renderer.shadowMap.enabled=false;this.renderer.shadowMap.type=T.PCFSoftShadowMap;
   this.scene.add(new T.HemisphereLight(0xffffff,0x526070,1.1));this.light=new T.DirectionalLight(0xffffff,2);this.light.position.set(5,7.071,5);this.light.castShadow=true;this.light.shadow.mapSize.set(1024,1024);this.light.shadow.bias=-.0003;this.scene.add(this.light,this.light.target);
   this.receiver=new T.Mesh(new T.PlaneGeometry(200,200),new T.MeshStandardMaterial({color:0x66717c,roughness:1}));this.receiver.rotation.x=-Math.PI/2;this.receiver.receiveShadow=true;this.receiver.visible=false;this.scene.add(this.receiver);
