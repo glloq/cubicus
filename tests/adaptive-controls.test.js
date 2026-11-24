@@ -79,11 +79,48 @@ test('legal cyclic shift and selection legality validate exact lines', () => {
 
 test('seeded mixing uses legal collective turns when individual rotations are disabled', () => {
   const cubes=grid(3,1,1);
-  const config=rules({rotation:{individual:false,simultaneous:false,axes:['Z']},movement:{swap:false}});
+  const config=rules({rotation:{individual:false,simultaneous:false,axes:['Z']},movement:{swap:false,emptySlots:false}});
   const copy=structuredClone(cubes);
   for (const list of [cubes,copy]) {
     assert.equal(mixPuzzle(list,config,{steps:1,random:seededRandom('test')}),1);
   }
   assert.deepEqual(cubes,copy);
   assert.equal(new Set(cubes.map(cube=>cube.p[1])).size,3);
+});
+
+test('compatible layers and independent solid groups swap atomically', () => {
+  const cubes=grid(2,2,1);
+  for(const [i,cube] of cubes.entries())cube.constraints={group:i<2?'one':'two',solid:true};
+  const config=rules({movement:{layerSwap:true,groupSwap:true,axes:['Y']}});
+  const state=()=>actionState(cubes,config);
+  const ids=cubes.slice(0,2).map(cube=>cube.id);
+  const otherIds=cubes.slice(2).map(cube=>cube.id);
+  assert.equal(executeAction(state(),{type:'swapLayers',ids,otherIds,axis:'Y'}),true);
+  assert.deepEqual(cubes.map(cube=>cube.p[1]),[1,1,0,0]);
+  assert.equal(executeAction(state(),{type:'swapGroups',ids,otherIds}),true);
+  assert.deepEqual(cubes.map(cube=>cube.p[1]),[0,0,1,1]);
+  cubes[2].constraints.positionLocked=true;
+  assert.equal(executeAction(state(),{type:'swapGroups',ids,otherIds}),false);
+  assert.deepEqual(cubes.map(cube=>cube.p[1]),[0,0,1,1]);
+});
+
+test('a bounded partial mix can use empty slots and retains an inverse operation', () => {
+  const [a,b]=grid(2,1,1);
+  a.constraints={slots:[[0,0,0],[0,1,0]]};
+  const config=rules({rotation:{individual:false,simultaneous:false,collective:false},movement:{swap:false,axes:['Y']}});
+  assert.equal(mixPuzzle([a,b],config,{ids:[a.id],steps:1,random:()=>0}),1);
+  assert.deepEqual(a.p,[0,1,0]);
+  assert.deepEqual(b.p,[1,0,0]);
+  assert.equal(executeAction(actionState([a,b],config),{type:'step',ids:[a.id],axis:'Y',sign:-1}),true);
+});
+
+test('illumination capabilities distinguish source type and scrub presentation metadata', () => {
+  const cubes=grid(1,1,1);
+  const config=rules({lighting:{direction:false,position:true,angle:true}});
+  assert.equal(capabilities(actionState(cubes,config,'directional')).light,false);
+  assert.equal(capabilities(actionState(cubes,config,'point')).light,true);
+  assert.equal(capabilities(actionState(cubes,config,'spot')).light,true);
+  const view={position:[1,2,3],target:[0,0,0],spacing:[0,0,0],zoom:1,
+    lighting:{type:'spot',position:[1,2,3],angle:120,intensity:1,privateName:'private'}};
+  assert.deepEqual(exportPuzzle(cubes,config,view).view.lighting,{type:'spot',position:[1,2,3],angle:90,intensity:1});
 });

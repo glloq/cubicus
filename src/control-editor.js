@@ -1,16 +1,16 @@
 import {AXES, RULE_FIELDS, controlRules, cubeConstraints, validSlot} from './control-rules.js';
-import {actionState, capabilities} from './control-actions.js';
+import {actionState, controlDiagnostics} from './control-actions.js';
 
 const labels = {
   camera:'Caméra', rotation:'Rotation', movement:'Déplacement', selection:'Sélection',
   spacing:'Écartement', lighting:'Éclairage', history:'Historique', orbit:'Orbite',
   pan:'Translation de caméra', zoom:'Zoom', perspective:'Perspective', orthographic:'Orthographique',
-  navigation:'Cube de navigation', reset:'Réinitialiser', individual:'Individuelle',
+  navigation:'Cube de navigation', roll:'Roulis caméra', near:'Distance minimale', far:'Distance maximale', zoomMin:'Zoom ortho minimal', zoomMax:'Zoom ortho maximal', reset:'Réinitialiser', individual:'Individuelle',
   simultaneous:'Simultanée', collective:'Collective', axes:'Axes', swap:'Permutation',
-  emptySlots:'Cases libres', groupTranslation:'Translation de groupe', cyclicShift:'Décalage cyclique',
+  emptySlots:'Cases libres', groupTranslation:'Translation de groupe', cyclicShift:'Décalage cyclique', layerSwap:'Permutation de couches', groupSwap:'Permutation de groupes',
   line:'Ligne', layer:'Couche', multiple:'Sélection multiple', definedGroups:'Groupes définis', all:'Ensemble',
   global:'Global', independentAxes:'Axes indépendants', min:'Minimum', max:'Maximum', step:'Pas',
-  direction:'Direction de la lumière', shadows:'Ombres', undo:'Annuler', redo:'Rétablir',
+  direction:'Direction de la lumière', position:'Position de la lumière', intensity:'Intensité', angle:'Ouverture du spot', shadows:'Ombres', undo:'Annuler', redo:'Rétablir',
   fixed:'Fixe', positionLocked:'Position verrouillée', orientationLocked:'Orientation verrouillée',
   noSwap:'Permutation interdite', noEmpty:'Case libre interdite', noGroup:'Sélections de groupe interdites',
   rotationAxes:'Axes de rotation', movementAxes:'Axes de déplacement', solid:'Groupe solidaire'
@@ -26,7 +26,7 @@ const profiles = {
   overlay:['Superposition optique',{rotation:{individual:true},spacing:{global:true}}],
   shadow:['Projection d’ombres',{lighting:{direction:true,shadows:true},rotation:{individual:true}}],
   complex:['Assemblage complexe',{rotation:{individual:true,simultaneous:true,collective:true},
-    movement:{swap:true,emptySlots:true,groupTranslation:true,cyclicShift:true},
+    movement:{swap:true,emptySlots:true,groupTranslation:true,cyclicShift:true,layerSwap:true,groupSwap:true},
     selection:{line:true,layer:true,multiple:true,definedGroups:true,all:true},
     spacing:{global:true,independentAxes:true},lighting:{direction:true,shadows:true}}]
 };
@@ -49,7 +49,7 @@ function field(parent, label, value, change, kind = 'checkbox') {
   const input = document.createElement('input');
   input.type = kind;
   if (kind === 'checkbox') input.checked = value;
-  else Object.assign(input,{value,min:0,max:2,step:.01});
+  else Object.assign(input,{value,step:.01});
   input.onchange = () => change(kind === 'checkbox' ? input.checked : Number(input.value));
   row.append(input,' '+label);
   parent.append(row);
@@ -73,6 +73,7 @@ export function bindControlEditor(host,{read,write,cubes,opening,status}) {
   const categories = document.createElement('div');
   host.append(profile,reset,suggest,apply,categories,report);
   let recommendation;
+  let lastProfile;
 
   function render() {
     const expanded = new Set([...categories.querySelectorAll('details[open]')].map(item=>item.dataset.category));
@@ -89,6 +90,7 @@ export function bindControlEditor(host,{read,write,cubes,opening,status}) {
         const update = value => {
           const next = structuredClone(read());
           next[category][key] = value;
+          profile.value='';
           write(controlRules(next));
           render();
         };
@@ -96,35 +98,38 @@ export function bindControlEditor(host,{read,write,cubes,opening,status}) {
           const axes = read()[category][key].filter(item=>item!==axis);
           update(enabled?[...axes,axis]:axes);
         });
-        else field(details,labels[key],rules[category][key],update,typeof base === 'number' ? 'number' : 'checkbox');
+        else {
+          const input=field(details,labels[key],rules[category][key],update,typeof base === 'number' ? 'number' : 'checkbox');
+          if(typeof base==='number') {
+            input.min=category==='camera'?.05:0;
+            input.max=category==='camera'?(['near','far'].includes(key)?1000:50):2;
+          }
+        }
       }
       categories.append(details);
     }
     diagnostic();
   }
   function diagnostic() {
-    const list = cubes();
-    const state = actionState(list,read());
-    const available = capabilities(state);
-    const visible = [true,available.rotation,available.move,available.spacing,available.light].filter(Boolean).length;
-    const fixed = list.filter(cube=>cube.constraints?.fixed).length;
-    const warnings = [];
-    if (opening()?.spacing?.some(value=>value<read().spacing.min||value>read().spacing.max)) warnings.push('écartement initial hors limites');
-    if (read().movement.swap && list.length<2) warnings.push('permutation indisponible avec un cube');
-    if (read().rotation.axes.length===0) warnings.push('aucun axe de rotation');
-    const invalidSlots = list.filter(cube=>cube.constraints?.slots&&!cube.constraints.slots.some(position=>position.join()===cube.p.join())).length;
-    if (invalidSlots) warnings.push(invalidSlots+' cubes hors de leurs cases autorisées');
-    report.textContent = fixed+' fixes · '+state.groups.size+' groupes · '+visible+' outils · axes d’écartement '+(available.gapAxes.join(', ')||'aucun')
-      +(warnings.length?' · Avertissement : '+warnings.join(', '):'');
+    const view=opening();
+    const state=actionState(cubes(),read(),view?.lighting?.type);
+    const {fixed,rotatable,movable,tools,available,errors,warnings}=controlDiagnostics(state,view);
+    report.textContent = [
+      fixed+' fixes · '+rotatable+' rotatifs · '+movable+' déplaçables · '+state.groups.size+' groupes · '+tools+' outils',
+      'Sélections : '+available.scopes.join(', ')+' · Axes d’écartement : '+(available.gapAxes.join(', ')||'aucun'),
+      ...errors.map(message=>'Erreur : '+message),
+      ...warnings.map(message=>'Avertissement : '+message)
+    ].join('\n');
   }
   function setProfile(id) {
     if (!profiles[id]) return;
     profile.value = id;
+    lastProfile = id;
     write(pickProfile(id));
     render();
   }
   profile.onchange = () => setProfile(profile.value);
-  reset.onclick = () => setProfile(profile.value);
+  reset.onclick = () => {if(lastProfile)setProfile(lastProfile);};
   suggest.onclick = () => {
     recommendation = opening()?.shadows ? 'shadow' : cubes().length === 1
       ? cubes()[0].constraints?.fixed ? 'observation' : 'cube' : cubes().length > 27 ? 'complex' : 'spatial';
@@ -133,7 +138,7 @@ export function bindControlEditor(host,{read,write,cubes,opening,status}) {
   };
   apply.onclick = () => { setProfile(recommendation); apply.hidden = true; };
   render();
-  return {render,diagnostic};
+  return {render,diagnostic, resetProfile(){profile.value='';lastProfile=undefined;apply.hidden=true;}};
 }
 
 export function bindConstraints(host,{selected,checkpoint,changed,status}) {
@@ -182,6 +187,61 @@ export function bindConstraints(host,{selected,checkpoint,changed,status}) {
       changed();
     };
     editor.append(group,slots,apply);
+  }
+  return {refresh};
+}
+
+export function bindGroupEditor(host,{cubes,checkpoint,changed,select,duplicate,status}) {
+  const list=document.createElement('select');
+  list.setAttribute('aria-label','Groupes définis');
+  const name=document.createElement('input');
+  name.maxLength=80;
+  name.setAttribute('aria-label','Nouveau nom privé du groupe');
+  const action=(label,callback)=>{
+    const button=document.createElement('button');
+    button.textContent=label;
+    button.onclick=()=>{if(list.value)callback();};
+    return button;
+  };
+  const members=()=>cubes().filter(cube=>cube.constraints?.group===list.value);
+  const activate=action('Sélectionner',()=>{
+    const group=members();
+    if(group.length)select(group[0].id);
+  });
+  const rename=action('Renommer',()=>{
+    const next=name.value.trim();
+    if(!next||next===list.value)return;
+    if(cubes().some(cube=>cube.constraints?.group===next)){
+      status('Ce nom est déjà utilisé par un autre groupe.');
+      return;
+    }
+    const group=members();
+    checkpoint();
+    for(const cube of group)cube.constraints={...cube.constraints,group:next};
+    changed();
+    refresh(next);
+  });
+  const copy=action('Copier les cubes du groupe',()=>{
+    select(members()[0].id);
+    duplicate();
+  });
+  const remove=action('Dissoudre',()=>{
+    checkpoint();
+    for(const cube of members()){
+      const {group,solid,...constraints}=cube.constraints;
+      cube.constraints=constraints;
+    }
+    changed();
+  });
+  host.append(list,name,activate,rename,copy,remove);
+  const selectName=()=>{name.value=list.value;};
+  list.onchange=selectName;
+  function refresh(preferred=list.value){
+    const groups=[...new Set(cubes().map(cube=>cube.constraints?.group).filter(Boolean))].sort();
+    list.replaceChildren(...groups.map(group=>new Option(group,group)));
+    if(groups.includes(preferred))list.value=preferred;
+    for(const control of [name,activate,rename,copy,remove])control.disabled=!list.value;
+    selectName();
   }
   return {refresh};
 }

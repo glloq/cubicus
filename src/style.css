@@ -64,3 +64,14 @@
 #silhouettePreview { display: block; width: min(100%, 150px); image-rendering: pixelated; }
 
 .player #controls[data-shadow-only] .lighttools { display: block; }
+
+#controlDiagnostic {
+  display: block;
+  margin-top: 8px;
+  white-space: pre-line;
+  font-size: 12px;
+  line-height: 1.5;
+}
+#cubeConstraints textarea { width: 100%; min-height: 4rem; }
+#lightPosition { display: flex; flex-wrap: wrap; gap: 4px; }
+#view > canvas:focus-visible { outline: 2px solid #87cbd5; outline-offset: -2px; }

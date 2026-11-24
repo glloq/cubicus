@@ -1,5 +1,5 @@
 import {controlRules} from './control-rules.js';
-import {actionState, applyChanges, previewAction, selection} from './control-actions.js';
+import {actionState, applyChanges, groupSwapAction, layerSwapAction, previewAction, selection} from './control-actions.js';
 
 export function seededRandom(seed) {
   let value = 2166136261;
@@ -63,7 +63,42 @@ export function mixPuzzle(cubes, controls, {positions = true, rotations = true, 
       }
       return null;
     }
-    const changes = swapFirst ? trySwaps() ?? tryRotations() : tryRotations() ?? trySwaps();
+    function tryOtherMoves() {
+      if (!positions) return null;
+      const options=rules.movement;
+      if (![options.emptySlots,options.groupTranslation,options.cyclicShift,options.layerSwap,options.groupSwap].some(Boolean)) return null;
+      const within=action=>action && (!allowed || [...action.ids,...(action.otherIds??[])].every(id=>allowed.has(id)));
+      const attempt=action=>within(action) ? find(action) : null;
+      for(let i=0;i<pool.length;i++){
+        const id=pool[(first+i)%pool.length].id;
+        for(const axis of options.axes)for(const direction of [sign,-sign]){
+          const step=attempt({type:'step',ids:[id],axis,sign:direction});
+          if(step)return step;
+          if(options.layerSwap){
+            const layer=attempt(layerSwapAction(state,id,axis,direction));
+            if(layer)return layer;
+          }
+          if(!options.groupTranslation&&!options.cyclicShift)continue;
+          for(const scope of ['definedGroups','line','layer','all','multiple']){
+            if(!rules.selection[scope])continue;
+            for(const selectionAxis of ['X','Y','Z']){
+              const members=selection(state,{id,scope,axis:selectionAxis,multiple:pool.map(cube=>cube.id)});
+              const ids=members.map(cube=>cube.id);
+              for(const type of ['translate','cycle']){
+                const changes=attempt({type,ids,axis,sign:direction,scope,selectionAxis});
+                if(changes)return changes;
+              }
+            }
+          }
+        }
+        if(options.groupSwap)for(const candidate of state.groups.values()){
+          const changes=attempt(groupSwapAction(state,id,candidate[0].id));
+          if(changes)return changes;
+        }
+      }
+      return null;
+    }
+    const changes = swapFirst ? trySwaps() ?? tryOtherMoves() ?? tryRotations() : tryRotations() ?? trySwaps() ?? tryOtherMoves();
     if (!changes) break;
     applyChanges(state,changes);
   }

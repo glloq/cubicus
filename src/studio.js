@@ -1,5 +1,6 @@
+import {actionState,controlDiagnostics} from './control-actions.js';
 import {controlRules} from './control-rules.js';
-import {bindConstraints,bindControlEditor} from './control-editor.js';
+import {bindConstraints,bindControlEditor,bindGroupEditor} from './control-editor.js';
 import {offsetGroup} from './assembly.js';
 import {bindResources} from './studio-resources.js';
 import { applySceneState, captureSceneState, initialView } from './scene-state.js';
@@ -63,6 +64,8 @@ function publicSnapshot() {
   if (pendingLayers.size || hasFailedComposition()) {
     throw new Error('La composition des calques doit être terminée');
   }
+  const report=controlDiagnostics(actionState(ctl.cubes,rules,publicView?.lighting?.type),publicView);
+  if(report.errors.length)throw new Error(report.errors.join(' '));
   return preparePublicPuzzle(ctl.cubes, rules, publicView);
 }
 
@@ -132,11 +135,21 @@ const controlEditor = bindControlEditor(q('publicControls'),{
 const constraintsEditor = bindConstraints(q('cubeConstraints'),{
   selected:()=>ctl.group(),checkpoint:()=>ctl.checkpoint(),changed:()=>ctl.changed(),status
 });
+const groupEditor=bindGroupEditor(q('groupEditor'),{
+  cubes:()=>ctl.cubes,checkpoint:()=>ctl.checkpoint(),changed:()=>ctl.changed(),status,
+  select(id){
+    ctl.scope='definedGroups';
+    ctl.select(id);
+  },
+  duplicate:()=>shiftSelection(true)
+});
 function refreshControlsEditor(){
   controlEditor.diagnostic();
   constraintsEditor.refresh();
+  groupEditor.refresh();
 }
 function renderRules(){controlEditor.render();}
+q('mixSeed').oninput=scheduleDraft;
 ctl.onSelectionChange=()=>constraintsEditor.refresh();
 refreshControlsEditor();
 
@@ -149,11 +162,13 @@ function captureView() { return captureSceneState(ctl); }
 function restoreView(viewState) { applySceneState(ctl, viewState); }
 q('capturePublicView').onclick = () => {
   publicView = initialView(captureView());
+  controlEditor.diagnostic();
   status(publicView ? 'Vue de démarrage publique mémorisée.' : 'Vue hors des limites de démarrage.');
   scheduleDraft();
 };
 q('clearPublicView').onclick = () => {
   publicView = null;
+  controlEditor.diagnostic();
   status('Le Player utilisera sa vue par défaut.');
   scheduleDraft();
 };
@@ -357,6 +372,7 @@ projects = bindProjects({
     publicView,
     library,
     controls: rules,
+    mixSeed: q('mixSeed').value,
     view: captureView()
   }),
   apply(project) {
@@ -366,6 +382,8 @@ projects = bindProjects({
     publicView = project.publicView;
     library = project.library;
     rules = project.controls;
+    q('mixSeed').value=project.mixSeed;
+    controlEditor.resetProfile();
     pendingLayers.clear();
     failedLayers.clear();
     ctl.history.clear();
@@ -376,6 +394,10 @@ projects = bindProjects({
     ctl.replace(project.cubes);
     ctl.selected = ctl.cubes[0].id;
     ctl.setSpacing([.12,.12,.12]);
+    ctl.applyLighting({type:'directional'});
+    view.setCameraUp([0,1,0]);
+    q('az').value=45;q('el').value=45;q('shadows').checked=false;
+    view.setLight(45,45);view.setShadows(false);
     view.fit(ctl.cubes);
     restoreView(project.view);
     ctl.changed();
@@ -409,6 +431,7 @@ bindSilhouette({
     ctl.changed();
     view.fit(cubes);
     if (mode === 'shadow') {
+      ctl.applyLighting({type:'directional'});
       q('az').value = 0;
       q('el').value = 90;
       q('shadows').checked = true;
@@ -497,6 +520,24 @@ function shiftSelection(duplicate) {
     return;
   }
   if (duplicate) {
+    const used=new Set(ctl.cubes.map(cube=>cube.constraints?.group).filter(Boolean));
+    const names=new Map();
+    for(const cube of moved){
+      if(!cube.constraints)continue;
+      const {group,slots}=cube.constraints;
+      if(group&&!names.has(group)){
+        let index=1;
+        let label;
+        do { label=group.slice(0,63)+' (copie '+index+')'; index++; } while(used.has(label));
+        names.set(group,label);
+        used.add(label);
+      }
+      if(group)cube.constraints.group=names.get(group);
+      if(slots){
+        cube.constraints.slots=slots.map(p=>p.map((value,axis)=>value+offset[axis]))
+          .filter(p=>p.every(value=>Math.abs(value)<=100));
+      }
+    }
     ctl.cubes.push(...moved);
     ctl.selected = moved[0].id;
   }

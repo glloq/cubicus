@@ -1,12 +1,12 @@
 export const AXES = ['X', 'Y', 'Z'];
 
 export const RULE_FIELDS = {
-  camera: {orbit:true, pan:true, zoom:true, perspective:true, orthographic:true, navigation:true, reset:true},
+  camera: {orbit:true, pan:true, zoom:true, perspective:true, orthographic:true, navigation:true, roll:false, reset:true, zoomMin:.05, zoomMax:50, near:.05, far:1000},
   rotation: {individual:true, simultaneous:true, collective:true, axes:AXES},
-  movement: {swap:true, emptySlots:true, groupTranslation:false, cyclicShift:false, axes:AXES},
+  movement: {swap:true, emptySlots:true, groupTranslation:false, cyclicShift:false, layerSwap:false, groupSwap:false, axes:AXES},
   selection: {individual:true, line:true, layer:true, multiple:false, definedGroups:true, all:true},
   spacing: {global:true, independentAxes:true, axes:AXES, min:0, max:2, step:.01},
-  lighting: {direction:true, shadows:true},
+  lighting: {direction:true, position:false, intensity:false, angle:false, shadows:true},
   history: {undo:true, redo:true, reset:true}
 };
 
@@ -33,9 +33,11 @@ export function controlRules(raw) {
       const value = legacy ? undefined : raw[category]?.[key];
       rules[category][key] = typeof fallback === 'boolean'
         ? (typeof value === 'boolean' ? value : fallback && (!legacy || raw?.[off[category]?.[key]] !== false))
-        : Array.isArray(fallback) ? normalizeAxes(value, fallback) : range(value, fallback, key === 'step' ? .01 : 0, 2);
+        : Array.isArray(fallback) ? normalizeAxes(value, fallback) : range(value, fallback, category === 'camera' ? .05 : key === 'step' ? .01 : 0, category === 'camera' ? (['near','far'].includes(key) ? 1000 : 50) : 2);
     }
   }
+  rules.camera.zoomMax = Math.max(rules.camera.zoomMin,rules.camera.zoomMax);
+  rules.camera.far = Math.max(rules.camera.near,rules.camera.far);
   if (rules.spacing.min > rules.spacing.max) rules.spacing.max = rules.spacing.min;
   return rules;
 }
@@ -58,4 +60,15 @@ export function cubeConstraints(raw) {
 
 export function validSlot(p) {
   return Array.isArray(p) && p.length === 3 && [0,1,2].every(i => Number.isInteger(p[i]) && Math.abs(p[i]) <= 100);
+}
+
+export const LIGHT_TYPES = ['directional','point','spot'];
+
+export function lightingState(raw) {
+  if (!LIGHT_TYPES.includes(raw?.type)) return null;
+  const position = Array.isArray(raw.position) && raw.position.length === 3 && [0,1,2].every(i => Number.isFinite(raw.position?.[i]) && Math.abs(raw.position[i]) <= 1000)
+    ? raw.position.slice(0,3) : [5,7,5];
+  return {type:raw.type,position,
+    intensity:range(raw.intensity,2,0,10),
+    angle:range(raw.angle,45,5,90)};
 }

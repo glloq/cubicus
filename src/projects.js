@@ -31,7 +31,8 @@ export function readPrivateProject(raw) {
     view: raw.view ?? null,
     publicView: initialView(raw.publicView),
     library: Array.isArray(raw.library) ? raw.library.map(cube => parseCubes([cube])[0]) : [],
-    controls: controlRules(raw.controls)
+    controls: controlRules(raw.controls),
+    mixSeed: typeof raw.mixSeed==='string' ? raw.mixSeed.slice(0,80) : ''
   };
 }
 

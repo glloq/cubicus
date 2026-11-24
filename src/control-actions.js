@@ -4,7 +4,7 @@ import {mul, quarter, rotateGroup} from './model.js';
 const key = position => position.join(',');
 const restriction = cube => cube.constraints ?? {};
 
-export function actionState(cubes, rules) {
+export function actionState(cubes, rules, lightType = 'directional') {
   const byId = new Map(cubes.map(cube => [cube.id, cube]));
   const occupied = new Map(cubes.map(cube => [key(cube.p), cube.id]));
   const groups = new Map();
@@ -14,7 +14,7 @@ export function actionState(cubes, rules) {
     if (!groups.has(group)) groups.set(group, []);
     groups.get(group).push(cube);
   }
-  return {cubes, rules, byId, occupied, groups};
+  return {cubes, rules, byId, occupied, groups, lightType};
 }
 
 export function selection(state, {id, scope = 'cube', axis = 'X', multiple = []} = {}) {
@@ -41,9 +41,42 @@ function permittedPosition(cube, position, axes) {
     && (!limits.slots || [cube.p,position].every(value => limits.slots.some(slot => key(slot) === key(value))));
 }
 
+function swappedPlacements(first,second) {
+  if (!first.length || first.length!==second.length) return null;
+  const origin = group => [0,1,2].map(axis=>Math.min(...group.map(cube=>cube.p[axis])));
+  const from=origin(first), to=origin(second);
+  const delta=to.map((value,i)=>value-from[i]);
+  const destination=new Set(second.map(cube=>key(cube.p)));
+  const offset=(cube,sign)=>cube.p.map((value,i)=>value+sign*delta[i]);
+  if (first.some(cube=>!destination.has(key(offset(cube,1))))) return null;
+  return [...first.map(cube=>({id:cube.id,p:offset(cube,1)})),
+    ...second.map(cube=>({id:cube.id,p:offset(cube,-1)}))];
+}
+
+export function layerSwapAction(state,id,axis,sign) {
+  const source=state.byId.get(id);
+  const index=AXES.indexOf(axis);
+  if(!source||index<0||![-1,1].includes(sign))return null;
+  const coordinate=source.p[index];
+  const distance=Math.min(...state.cubes.map(cube=>(cube.p[index]-coordinate)*sign).filter(value=>value>0));
+  if(!Number.isFinite(distance))return null;
+  const ids=state.cubes.filter(cube=>cube.p[index]===coordinate).map(cube=>cube.id);
+  const otherIds=state.cubes.filter(cube=>cube.p[index]===coordinate+distance*sign).map(cube=>cube.id);
+  return {type:'swapLayers',ids,otherIds,axis};
+}
+
+export function groupSwapAction(state,from,to) {
+  const a=restriction(state.byId.get(from)??{}).group;
+  const b=restriction(state.byId.get(to)??{}).group;
+  if(!a||!b||a===b)return null;
+  return {type:'swapGroups',ids:state.groups.get(a).map(cube=>cube.id),otherIds:state.groups.get(b).map(cube=>cube.id)};
+}
+
 export function previewAction(state, action) {
   const {rules, byId, occupied, groups} = state;
-  const ids = new Set(action.ids);
+  if (!Array.isArray(action?.ids) || !action.ids.length ||
+    (action.otherIds && !Array.isArray(action.otherIds))) return null;
+  const ids = new Set([...action.ids,...(action.otherIds??[])]);
   const members = [...ids].map(id => byId.get(id));
   if (!members.length || members.some(cube => !cube)) return null;
   const {axis, sign, type} = action;
@@ -63,7 +96,7 @@ export function previewAction(state, action) {
     const group = groups.get(limits.group);
     if (members.length > 1 && limits.noGroup && type !== 'swap') return null;
     if (group?.length > 1 && group.some(item => restriction(item).solid)
-      && (!['collective','translate'].includes(type) || !group.every(item => ids.has(item.id)))) return null;
+      && (!['collective','translate','swapLayers','swapGroups'].includes(type) || !group.every(item => ids.has(item.id)))) return null;
     if (rotates && (limits.fixed || limits.orientationLocked ||
       (limits.rotationAxes && !limits.rotationAxes.includes(axis)))) return null;
   }
@@ -82,6 +115,27 @@ export function previewAction(state, action) {
   } else if (type === 'swap') {
     if (!rules.selection.individual || !rules.movement.swap || members.length !== 2 || members.some(cube => restriction(cube).noSwap)) return null;
     changes = members.map((cube, i) => ({id:cube.id, p:members[1-i].p}));
+  } else if (type === 'swapGroups' || type === 'swapLayers') {
+    const first=action.ids.map(id=>byId.get(id));
+    const second=action.otherIds?.map(id=>byId.get(id)) ?? [];
+    if(first.length+second.length!==ids.size||!second.length||members.some(cube=>restriction(cube).noSwap))return null;
+    if(type==='swapLayers') {
+      const index=AXES.indexOf(axis);
+      if(!rules.movement.layerSwap||!rules.selection.layer||index<0||!rules.movement.axes.includes(axis)||
+        ![first,second].every(layer=>state.cubes.filter(cube=>cube.p[index]===layer[0].p[index]).length===layer.length &&
+          layer.every(cube=>cube.p[index]===layer[0].p[index])))return null;
+    } else {
+      if(!rules.movement.groupSwap||!rules.selection.definedGroups||first.length<2||
+        ![first,second].every(group=>groups.get(restriction(group[0]).group)?.length===group.length &&
+          group.every(cube=>restriction(cube).group===restriction(group[0]).group)))return null;
+    }
+    changes=swappedPlacements(first,second);
+    if(!changes)return null;
+    for(const group of groups.values())if(group.some(cube=>restriction(cube).solid)&&group.some(cube=>ids.has(cube.id))){
+      const displacement=new Set(changes.filter(change=>group.some(cube=>cube.id===change.id))
+        .map(change=>key(change.p.map((value,i)=>value-byId.get(change.id).p[i]))));
+      if(displacement.size!==1)return null;
+    }
   } else if (type === 'step' || type === 'translate') {
     if (!AXES.includes(axis) || ![-1,1].includes(sign)) return null;
     if (type === 'step' && (!rules.selection.individual || !rules.movement.emptySlots || members.length !== 1 || restriction(members[0]).noEmpty)) return null;
@@ -140,7 +194,7 @@ export function capabilities(state) {
   const move = rules.selection.individual && (rules.movement.swap &&
     mobile.filter(cube => !restriction(cube).noSwap).length >= 2 || rules.movement.emptySlots &&
     mobile.some(cube => !restriction(cube).noEmpty)) ||
-    mobile.length >= 2 && (rules.movement.groupTranslation || rules.movement.cyclicShift);
+    mobile.length >= 2 && (rules.movement.groupTranslation || rules.movement.cyclicShift || rules.movement.layerSwap&&rules.selection.layer || rules.movement.groupSwap&&state.groups.size>1);
   const gapAxes = axes.filter(axis => rules.spacing.axes.includes(axis));
   const spacing = gapAxes.length > 0 && rules.spacing.max > rules.spacing.min
     && (rules.spacing.global || rules.spacing.independentAxes);
@@ -161,5 +215,33 @@ export function capabilities(state) {
     }
     return true;
   });
-  return {rotation, move, spacing, gapAxes, scopes, light:rules.lighting.direction};
+  return {rotation, move, spacing, gapAxes, scopes, light:rules.lighting.intensity || (state.lightType !== 'point' && rules.lighting.direction) ||
+    (state.lightType !== 'directional' && rules.lighting.position) || (state.lightType === 'spot' && rules.lighting.angle)};
+}
+
+export function controlDiagnostics(state,opening) {
+  const {rules,cubes,groups}=state;
+  const available=capabilities(state);
+  const fixed=cubes.filter(cube=>restriction(cube).fixed).length;
+  const rotatable=cubes.filter(cube=>!restriction(cube).fixed&&!restriction(cube).orientationLocked &&
+    rules.rotation.axes.some(axis=>!restriction(cube).rotationAxes||restriction(cube).rotationAxes.includes(axis))).length;
+  const movable=cubes.filter(cube=>!restriction(cube).fixed&&!restriction(cube).positionLocked &&
+    rules.movement.axes.some(axis=>!restriction(cube).movementAxes||restriction(cube).movementAxes.includes(axis))).length;
+  const tools=[true,available.rotation,available.move,available.spacing,available.light].filter(Boolean).length;
+  const errors=[];
+  const warnings=[];
+  for(const [name,group] of groups)if(group.length>1&&group.some(cube=>restriction(cube).solid)){
+    if(group.some(cube=>restriction(cube).noGroup))errors.push('Le groupe solidaire « '+name+' » exclut un de ses membres de la sélection.');
+    else if(group.some(cube=>restriction(cube).fixed))warnings.push('Le groupe solidaire « '+name+' » contient un membre fixe.');
+  }
+  if(cubes.some(cube=>restriction(cube).slots&&!restriction(cube).slots.some(p=>key(p)===key(cube.p)))){
+    errors.push('Des cubes occupent des cases absentes de leurs emplacements autorisés.');
+  }
+  if(opening?.spacing?.some(value=>value<rules.spacing.min||value>rules.spacing.max)) {
+    errors.push('La vue initiale publique contient un écartement hors limites.');
+  }
+  if(rules.movement.swap&&cubes.length<2)warnings.push('La permutation demande au moins deux cubes.');
+  if(!rules.rotation.axes.length && (rules.rotation.individual || rules.rotation.collective || rules.rotation.simultaneous))warnings.push('La rotation est activée sans axe autorisé.');
+  if(!rules.movement.axes.length&&Object.values(rules.movement).some(value=>value===true))warnings.push('Le déplacement est activé sans axe autorisé.');
+  return {available,fixed,rotatable,movable,tools,errors,warnings};
 }
