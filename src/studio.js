@@ -7,5 +7,5 @@ function refreshLibrary(){q('library').replaceChildren(...library.map((c,i)=>new
 q('librarySave').onclick=()=>{if(!selected())return;library.push(structuredClone(selected()));refreshLibrary()};
 q('libraryAdd').onclick=()=>{const c=library[+q('library').value];if(!c||ctl.cubes.length>=512)return;const p=[Math.max(-1,...ctl.cubes.map(c=>c.p[0]))+1,0,0];if(p[0]>100)return;ctl.checkpoint();const n={...structuredClone(c),id:crypto.randomUUID(),p};ctl.cubes.push(n);ctl.selected=n.id;ctl.changed();view.fit(ctl.cubes)};
 q('textAdd').onclick=()=>{if(!selected()||!faceReady||!q('text').value)return;ctl.checkpoint();ctx.fillStyle=q('color').value;ctx.font='bold 100px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(q('text').value,256,256,470);commit()};
-q('demo').onclick=()=>{ctl.checkpoint();ctl.replace(demo(4));view.fit(ctl.cubes)};
+q('demo').onclick=()=>{ctl.checkpoint();ctl.replace(demo(4));ctl.selected=ctl.cubes[0].id;ctl.changed();view.fit(ctl.cubes)};
 refreshNet();
