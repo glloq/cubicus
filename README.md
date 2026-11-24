@@ -1,12 +1,33 @@
 # Cubicus
 
-Browser-based 3D cube puzzle authoring and playtesting. No answer input or validation in the player; validation belongs to an external server.
+Cubicus est un atelier et un lecteur d’énigmes 3D à base de fragments assemblés sur une grille. Les cubes tournent par quarts de tour. Le Studio et le Player partagent le moteur de rendu et les règles de manipulation.
 
-Studio: `studio.html`. Player: `play.html`. Serve the repository with a static HTTP server. GitHub Pages can publish the root of main. Three.js is loaded as a pinned ES module from a CDN for the initial prototype.
+## Développement
 
-Private authoring projects must never be committed. Public puzzle exports contain only initial poses, flattened face images and public controls, never target poses or answers.
+Avec Node.js 22 et Python 3, installez les versions épinglées et servez le dépôt.
 
-## Quick test
-Visit https://glloq.github.io/cubicus/play.html and choose 1, 4 or 18 cubes. Observe: left or right drag; other modes: right drag. Rotate: click a cube and its colored arrow. Move: drag cube onto another. Light: drag in viewport. Studio: https://glloq.github.io/cubicus/studio.html — create a grid, select a face, draw/import, shuffle and Test. No answer input.
+```bash
+npm ci
+python3 -m http.server 8080
+```
 
-Local: `python3 -m http.server 8080` then open http://localhost:8080/studio.html. Unit checks: `npm run check && npm test`. Browser smoke: install playwright@1.51.1 and Chromium, then run `node browser-tests/smoke.mjs` against the local server.
+Ouvrez `studio.html` pour créer et `play.html` pour jouer. Le navigateur charge Three.js depuis le dépôt servi localement après installation.
+
+```bash
+npm run check
+npm test
+npx playwright install --with-deps chromium
+npm run test:browser
+npm run benchmark
+```
+
+Le serveur HTTP doit tourner pour les deux dernières commandes. Définissez `CHROMIUM_PATH` pour utiliser un Chromium déjà installé ou `BASE_URL` pour tester un autre port. Définissez `CUBICUS_ARTIFACT_DIR` pour collecter des captures en cas d’échec Chromium.
+
+## Ressources
+
+- [Guide Studio, formats et publication](docs/STUDIO_GUIDE.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [État des chantiers V1](docs/STUDIO_V1_ROADMAP.md)
+- [Mesures de performance](docs/PERFORMANCES.md)
+
+Le Player ouvre les trois démonstrations techniques existantes. La collection V1 d’énigmes de jeu reste à développer.

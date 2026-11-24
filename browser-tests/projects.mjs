@@ -115,6 +115,40 @@ try {
     return [results.map(result => result.status).sort(), (await loadProject(id)).revision];
   });
   assert.deepEqual(conflict, [['fulfilled', 'rejected'], 1]);
+  await page.locator('.studio-tabs [data-stage=assembly]').click();
+  await page.locator('#resourceLibrary summary').click();
+  await page.locator('#resourceName').fill('Cube réutilisable');
+  await page.locator('#resourceSave').click();
+  await page.getByRole('status').filter({hasText:'Ressource sauvegardée'}).waitFor();
+  await page.locator('#newProject').click();
+  await page.getByRole('status').filter({hasText:'Nouveau projet créé'}).waitFor();
+  await page.locator('#resourceUse').click();
+  assert.equal(await page.locator('#cubePicker option').count(), 5);
+
+  const reflection = await page.evaluate(async () => {
+    const [{SceneView}, {cube}] = await Promise.all([import('./src/scene.js'), import('./src/model.js')]);
+    const host = document.createElement('section');
+    Object.assign(host.style, {width:'320px', height:'240px', position:'fixed', top:'0'});
+    document.body.append(host);
+    const view = new SceneView(host, () => {});
+    const reflected = cube([1,0,1]);
+    reflected.materials = Array.from({length:6}, () => ({mode:'unlit', color:'#ff0000'}));
+    const mirrorCube = cube();
+    mirrorCube.materials = Array.from({length:6}, (_, i) => ({mode:i === 4 ? 'mirror' : 'lit'}));
+    view.update([mirrorCube, reflected], [], [0,0,0]);
+    view.camera.position.set(0,0,4);
+    view.orbit.target.set(-.5,0,0);
+    view.orbit.update();
+    view.render();
+    const mirror = view.meshes[0].children.find(child => child.isReflector);
+    const rendered = mirror?.camera.position.z < mirrorCube.p[2];
+    const textureWidth = mirror?.getRenderTarget().width;
+    view.toggleProjection();
+    const orthographicFallback = mirror?.visible === false;
+    host.remove();
+    return {rendered, textureWidth, orthographicFallback};
+  });
+  assert.deepEqual(reflection, {rendered:true, textureWidth:256, orthographicFallback:true});
   assert.deepEqual(errors, []);
   console.log('Projets locaux, duplication, versions, historique et concurrence OK');
 } catch (error) {

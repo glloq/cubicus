@@ -1,3 +1,5 @@
+import {offsetGroup} from './assembly.js';
+import {bindResources} from './studio-resources.js';
 import { applySceneState, captureSceneState, initialView } from './scene-state.js';
 import { bindSilhouette } from './studio-silhouette.js';
 import { faceMaterials, validateMirrors } from './materials.js';
@@ -29,6 +31,8 @@ bindImageImport({
     if (!target.layer) {
       target.cube.materials = faceMaterials(target.cube.materials);
       target.cube.materials[Number(target.face)].blend = true;
+      target.cube.alphaFaces = alphaFaces(target.cube.alphaFaces);
+      target.cube.alphaFaces[Number(target.face)] = false;
       refreshMaterial();
     }
     commit();
@@ -121,7 +125,10 @@ ctl.selected=ctl.cubes[0].id;ctl.draw();loadFace();view.fit(ctl.cubes);
 function renderRules(){const host=q('publicControls');host.replaceChildren();const names={rotate:'Rotation',move:'Déplacement',groups:'Lignes et couches',spacing:'Écartement',light:'Lumière',shadows:'Ombres',observe:'Orienter la caméra',zoom:'Zoom',projection:'Changer de projection'};for(const key of CONTROL_KEYS){const label=document.createElement('label'),box=document.createElement('input');box.type='checkbox';box.checked=rules[key];box.onchange=()=>{rules[key]=box.checked;scheduleDraft()};label.append(box,' '+names[key]);host.append(label)}}
 renderRules();
 
-q('muralCreate').onclick=async()=>{const file=q('mural').files[0];if(!file){status('Choisir une image complète');return}let image;try{image=await createImageBitmap(file);const c=muralTiles(image,+q('muralX').value,+q('muralY').value);ctl.checkpoint();ctl.replace(c);reference=structuredClone(c);referenceView=null;ctl.selected=c[0].id;q('face').value=4;ctl.changed();view.fit(c);status('Fresque créée. Mélanger pour préparer le test.')}catch(e){status(e.message)}finally{image?.close()}};
+q('muralCreate').onclick=async()=>{const file=q('mural').files[0];if(!file){status('Choisir une image complète');return}const assembly = ctl.cubes;let image;try{image=await createImageBitmap(file);if (ctl.cubes !== assembly) return;const c=muralTiles(image,+q('muralX').value,+q('muralY').value,{
+  plane:q('muralPlane').value, angle:+q('muralAngle').value, fill:q('muralFill').checked,
+  alpha:q('muralAlpha').checked, offset:[+q('muralOffsetX').value,+q('muralOffsetY').value]
+});ctl.checkpoint();ctl.replace(c);reference=structuredClone(c);referenceView=null;ctl.selected=c[0].id;q('face').value=4;ctl.changed();view.fit(c);status('Fresque créée. Mélanger pour préparer le test.')}catch(e){status(e.message)}finally{image?.close()}};
 
 function captureView() { return captureSceneState(ctl); }
 function restoreView(viewState) { applySceneState(ctl, viewState); }
@@ -136,7 +143,10 @@ q('clearPublicView').onclick = () => {
   scheduleDraft();
 };
 q('projectionView').onclick=()=>restoreView(referenceView);
-q('projectImage').onclick=async()=>{const file=q('projectionImage').files[0];if(!file){status('Choisir une image à projeter');return}let image;const button=q('projectImage');button.disabled=true;try{image=await createImageBitmap(file);const pose=captureView();const result=bakeProjection(image,view,ctl.cubes,{resolution:+q('projectionResolution').value,preserve:q('projectionKeep').checked});ctl.checkpoint();ctl.replace(result.cubes);reference=structuredClone(result.cubes);referenceView=pose;ctl.selected=result.cubes[0].id;ctl.changed();status(result.count+' faces texturées. Vue privée mémorisée.')}catch(e){status(e.message)}finally{image?.close();button.disabled=false}};
+q('projectImage').onclick=async()=>{const file=q('projectionImage').files[0];if(!file){status('Choisir une image à projeter');return}const assembly = ctl.cubes;let image;const button=q('projectImage');button.disabled=true;try{image=await createImageBitmap(file);if (ctl.cubes !== assembly) return;const pose=captureView();const result=bakeProjection(image,view,ctl.cubes,{resolution:+q('projectionResolution').value,preserve:q('projectionKeep').checked,
+ids:q('projectionSelected').checked?ctl.group().map(c=>c.id):null,
+face:q('projectionFace').checked?+q('face').value:null,
+asLayer:q('projectionLayers').checked});ctl.checkpoint();ctl.replace(result.cubes);reference=structuredClone(result.cubes);referenceView=pose;ctl.selected=result.cubes[0].id;ctl.changed();status(result.count+' faces texturées. Vue privée mémorisée.')}catch(e){status(e.message)}finally{image?.close();button.disabled=false}};
 
 function refreshMaterial(){const c=selected(),f=+q('face').value;const v=faceOpacity(c?.opacity)[f];q('faceOpacity').value=Math.round(v*100);q('opacityValue').value=Math.round(v*100)+'%';q('alphaFace').checked=alphaFaces(c?.alphaFaces)[f];const material=faceMaterials(c?.materials)[f];
 q('blendFace').checked=material.blend;
@@ -167,7 +177,7 @@ q('materialMode').onchange = event => updateMaterial({mode: event.target.value})
 q('materialColor').onchange = event => updateMaterial({color: event.target.value});
 q('materialReset').onclick = () => updateMaterial({color: null});
 q('neutralMaterials').onchange = event => { view.neutralMaterials = event.target.checked; ctl.draw(); };
-q('overlayCreate').onclick=async()=>{const file=q('overlayImage').files[0];if(!file){status('Choisir une image');return}let image;try{image=await createImageBitmap(file);const c=overlayLayers(image,+q('overlayCount').value);ctl.checkpoint();ctl.replace(c);ctl.selected=c[0].id;q('face').value=4;ctl.changed();view.fit(c);if(!view.camera.isOrthographicCamera)view.toggleProjection();const d=view.camera.position.distanceTo(view.orbit.target);view.camera.position.copy(view.orbit.target);view.camera.position.z+=d;view.orbit.update();view.render();reference=structuredClone(c);referenceView=captureView();scheduleDraft();status('Superposition créée. Mélanger les cubes pour tester.')}catch(e){status(e.message)}finally{image?.close()}};
+q('overlayCreate').onclick=async()=>{const file=q('overlayImage').files[0];if(!file){status('Choisir une image');return}const assembly = ctl.cubes;let image;try{image=await createImageBitmap(file);if (ctl.cubes !== assembly) return;const c=overlayLayers(image,+q('overlayCount').value,{mode:q('overlayMode').value,depth:+q('overlayDepth').value});ctl.checkpoint();ctl.replace(c);ctl.selected=c[0].id;q('face').value=4;ctl.changed();view.fit(c);if(!view.camera.isOrthographicCamera)view.toggleProjection();const d=view.camera.position.distanceTo(view.orbit.target);view.camera.position.copy(view.orbit.target);view.camera.position.z+=d;view.orbit.update();view.render();reference=structuredClone(c);referenceView=captureView();scheduleDraft();status('Superposition créée. Mélanger les cubes pour tester.')}catch(e){status(e.message)}finally{image?.close()}};
 
 const workspace=document.querySelector('.studio-layout');
 function stage(name){workspace.dataset.stage=name;for(const b of document.querySelectorAll('[data-stage]'))if(b.tagName==='BUTTON'){b.classList.toggle('active',b.dataset.stage===name);b.setAttribute('aria-pressed',String(b.dataset.stage===name))}for(const p of workspace.querySelectorAll('[data-panel]'))p.hidden=p.dataset.panel!==name;view.resize()}
@@ -256,7 +266,34 @@ q('layerOpacity').onchange=e=>{if(!activeLayer())return;ctl.checkpoint();activeL
 function stampAt(x,y){drawStamp(ctx,{symbol:q('stampSymbol').value,x,y,size:+q('stampSize').value,angle:+q('stampAngle').value,color:q('color').value,width:+q('width').value,fill:q('stampFill').checked})}
 q('stampMode').onclick=()=>{q('brush').value='stamp';status('Cliquer sur la face pour placer le symbole')};
 q('stampCenter').onclick=()=>{if(!selected()||!faceReady||activeLayer()?.locked)return;ctl.checkpoint();stampAt(256,256);commit()};
-q('auditProject').onclick=async()=>{const lines=[];try{const comparison=references.active()?.cubes ?? reference;const p=await publicSnapshot();lines.push('Format public : valide');lines.push('Cubes : '+p.cubes.length);lines.push('Faces décorées : '+p.cubes.reduce((n,c)=>n+c.faces.filter(Boolean).length,0));lines.push('Export : '+(new Blob([JSON.stringify(p)]).size/1024).toFixed(1)+' Kio');if(!rules.rotate&&!rules.move&&!rules.spacing&&!rules.light)lines.push('Observation seule');if(!comparison)lines.push('Attention : aucune configuration de référence');if(comparison&&comparison.length!==ctl.cubes.length)lines.push('Attention : nombre de cubes différent de la référence');if(comparison&&comparison.length===ctl.cubes.length&&comparison.every(c=>{const other=ctl.cubes.find(x=>x.id===c.id);return other&&c.p.join()===other.p.join()&&c.r.join()===other.r.join()}))lines.push('Attention : poses identiques à la référence');if(pendingLayers.size)lines.push('Attention : composition en cours');lines.push('Lisibilité et résistance algorithmique : contrôle manuel nécessaire')}catch(e){lines.push('Erreur : '+e.message)}q('auditResult').textContent=lines.join('\n')};
+q('auditProject').onclick = async () => {
+  const lines = [];
+  try {
+    const comparison = references.active()?.cubes ?? reference;
+    const puzzle = await publicSnapshot();
+    const scene = view.renderer.info;
+    const uniqueMaterials = new Set(view.meshes.flatMap(mesh => mesh.material));
+    const poses = new Map(ctl.cubes.map(cube => [cube.id, cube]));
+    lines.push('Format public : valide');
+    lines.push('Cubes : ' + puzzle.cubes.length);
+    lines.push('Faces décorées : ' + puzzle.cubes.reduce((count, cube) => count + cube.faces.filter(Boolean).length, 0));
+    lines.push('Export : ' + (new Blob([JSON.stringify(puzzle)]).size / 1024).toFixed(1) + ' Kio');
+    lines.push('Dernier rendu : ' + scene.render.triangles + ' triangles, ' + scene.render.calls + ' appels de dessin');
+    lines.push('Scène : ' + view.meshes.length + ' maillages de cubes, ' + uniqueMaterials.size + ' matériaux, ' + scene.memory.textures + ' textures GPU');
+    if (!rules.rotate && !rules.move && !rules.spacing && !rules.light) lines.push('Observation seule');
+    if (!comparison) lines.push('Attention : aucune configuration de référence');
+    if (comparison && comparison.length !== poses.size) lines.push('Attention : nombre de cubes différent de la référence');
+    if (comparison?.length === poses.size && comparison.every(cube => {
+      const other = poses.get(cube.id);
+      return other && cube.p.join() === other.p.join() && cube.r.join() === other.r.join();
+    })) lines.push('Attention : poses identiques à la référence');
+    lines.push('Lisibilité et résistance à la reconstruction : contrôle manuel.');
+  } catch (error) {
+    lines.push('Erreur : ' + error.message);
+  }
+  q('auditResult').textContent = lines.join('\n');
+};
+
 
 for(const [i,name] of ['Droite','Gauche','Haut','Bas','Avant','Arrière'].entries()){const l=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.dataset.face=i;input.onchange=()=>{const c=selected();if(!c)return;ctl.checkpoint();c.opacity=faceOpacity(c.opacity);c.opacity[i]=input.checked?0:1;ctl.changed()};l.append(input,' '+name+' ouverte');q('openFaces').append(l)}
 function setOpen(open){const c=selected();if(!c)return;ctl.checkpoint();c.opacity=Array(6).fill(open?0:1);ctl.changed()}
@@ -373,3 +410,83 @@ bindSilhouette({
   },
   status
 });
+
+bindResources({
+  capture(kind) {
+    if (pendingLayers.size || hasFailedComposition()) throw new Error('Attendez la composition des calques.');
+    if (kind === 'assembly') return structuredClone(ctl.cubes);
+    const source = selected();
+    if (!source) throw new Error('Sélectionnez un cube.');
+    if (kind === 'cube') return [structuredClone(source)];
+    const fragment = cube();
+    const face = +q('face').value;
+    if (kind === 'face') {
+      fragment.faces[0] = source.faces[face];
+      fragment.layers = [structuredClone(source.layers?.[face] ?? [])];
+    } else if (kind === 'materials') {
+      fragment.materials = faceMaterials(source.materials);
+      fragment.alphaFaces = alphaFaces(source.alphaFaces);
+      fragment.opacity = faceOpacity(source.opacity);
+    } else if (kind === 'volume' && source.volume) fragment.volume = structuredClone(source.volume);
+    return [fragment];
+  },
+  apply({kind, cubes}) {
+    const target = selected();
+    const source = cubes[0];
+    if (kind === 'assembly') {
+      ctl.checkpoint();
+      ctl.replace(cubes.map(fragment => ({...fragment, id: crypto.randomUUID()})));
+      ctl.selected = ctl.cubes[0].id;
+      ctl.changed();
+      view.fit(ctl.cubes);
+      return;
+    }
+    if (kind === 'cube') {
+      if (ctl.cubes.length >= 512) throw new Error('Limite de 512 cubes.');
+      const p = [Math.max(-1, ...ctl.cubes.map(fragment => fragment.p[0])) + 1, 0, 0];
+      if (p[0] > 100) throw new Error('Limite de grille.');
+      ctl.checkpoint();
+      ctl.cubes.push({...source, p, id: crypto.randomUUID()});
+      ctl.selected = ctl.cubes.at(-1).id;
+      ctl.changed();
+      view.fit(ctl.cubes);
+      return;
+    }
+    if (!target) throw new Error('Sélectionnez un cube.');
+    const face = +q('face').value;
+    if (kind === 'face' && (activeLayer()?.locked || pendingLayers.has(target.id + ':' + face))) {
+      throw new Error('La face active est verrouillée ou en cours de composition.');
+    }
+    const updates = kind === 'materials' ? {
+      materials: source.materials, opacity: source.opacity, alphaFaces: source.alphaFaces
+    } : kind === 'volume' ? {volume: source.volume} : {};
+    validateMirrors(ctl.cubes.map(item => item === target ? {...target, ...updates} : item));
+    ctl.checkpoint();
+    if (kind === 'face') {
+      target.faces[face] = source.faces[0];
+      target.layers = privateLayers(target);
+      target.layers[face] = source.layers[0];
+      failedLayers.delete(target.id + ':' + face);
+    } else Object.assign(target, updates);
+    ctl.changed();
+  },
+  status
+});
+
+function shiftSelection(duplicate) {
+  const original = ctl.snapshot();
+  const offset = ['X','Y','Z'].map(axis => Number(q('groupOffset' + axis).value));
+  const moved = offsetGroup(ctl.cubes, ctl.group().map(cube => cube.id), offset, {duplicate});
+  if (!moved) {
+    status('Déplacement impossible. Vérifiez la sélection, les limites et les cases occupées.');
+    return;
+  }
+  if (duplicate) {
+    ctl.cubes.push(...moved);
+    ctl.selected = moved[0].id;
+  }
+  ctl.history.record(original);
+  ctl.changed(!duplicate);
+}
+q('translateGroup').onclick = () => shiftSelection(false);
+q('duplicateGroup').onclick = () => shiftSelection(true);

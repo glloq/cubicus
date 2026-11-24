@@ -1,37 +1,41 @@
 # Feuille de route du Studio V1.0
 
-Point de départ : `20fa65e` (Studio V0.9). Les 12 tests unitaires et la vérification de syntaxe passent localement. L’API GitHub Actions est inaccessible via le proxy de cet environnement (HTTP 403). Le workflow Pages vérifie la syntaxe et les unités, mais ne dépend pas du contrôle Chromium.
+Point de départ : `20fa65e` (Studio V0.9). Les 12 tests unitaires et la vérification de syntaxe passent localement. L’API GitHub Actions est inaccessible via le proxy de cet environnement (HTTP 403). Sur main à ce commit, le workflow Pages ignorait Chromium. La branche fait désormais dépendre le déploiement des deux validations.
 
 États : TODO, IN_PROGRESS, IMPLEMENTED, TESTED, QUALIFIED, BLOCKED. TESTED indique que les contrôles ciblés ont été exécutés. QUALIFIED exige la satisfaction des critères d’acceptation, y compris les contrôles navigateur, visuels ou de performance applicables.
 
-| Chantier | État | Existant et critère d’acceptation |
+## Livraison sur la branche V1
+
+Les états décrivent l’avancement du chantier entier. Un chantier IN_PROGRESS peut contenir des fonctionnalités testées. Aucun état QUALIFIED n’est attribué à la V1 complète.
+
+| Chantier | État livré | Résultat et reste à faire |
 | --- | --- | --- |
-| S01 Architecture | IN_PROGRESS | Moteur partagé, orchestration Studio dense. Extraire des modules privés sans cycle et préserver les parcours existants. |
-| S02 Interface | TODO | Quatre étapes et scène centrale. Regrouper les actions globales et vérifier panneaux, contexte et états actifs sur plusieurs dimensions. |
-| S03 Éditeur 2D | TODO | Canevas, patron, six outils. Vérifier navigation indépendante, guides, accrochage et création des formes demandées. |
-| S04 Calques | TODO | Calques matriciels privés. Vérifier l’édition individuelle, la migration des calques et l’aplatissement public. |
-| S05 Import | TODO | Import bitmap avec ajustement centré. Vérifier transformations, alpha, recadrage, aperçu et rasterisation de SVG assainis. |
-| S06 Bibliothèque | TODO | Modèles de cubes par projet. Sauvegarder, restaurer et réutiliser des ressources indépendantes dans plusieurs projets. |
-| S07 Géométrie | TODO | Boîtes pleines et faces masquées. Vérifier les ouvertures réelles, normales, UV, raycasting et ombres dans les deux interfaces. |
-| S08 Sous-volumes | TODO | Ajouter l’édition par couche et région puis vérifier que le maillage omet les surfaces internes. |
-| S09 Matériaux | TODO | Opacité et découpe alpha. Vérifier les modes d’éclairage et distinguer matière transparente, maillage absent et ouverture. |
-| S10 Assemblage | TODO | Sélections par ligne/couche, permutations et cases voisines. Vérifier opérations de groupe et contraintes atomiques. |
-| S11 Fresques | TODO | Découpage XY créant une plaque. Vérifier plans, masques, aperçu et conservation des faces existantes. |
-| S12 Anamorphose | TODO | Projection selon matrices et caméra courante. Vérifier la visibilité, les pertes et la composition sans révélation dynamique. |
-| S13 Superpositions | TODO | Partition par pixels en profondeur. Vérifier les autres répartitions, la recomposition et documenter les ambiguïtés. |
-| S14 Ombres | TODO | Lumière directionnelle et récepteur. Produire et comparer une silhouette via un maillage projeté réellement. |
-| S15 Espaces négatifs | TODO | Écartements par axe. Vérifier les découpes et le vide inter-cubes depuis une référence privée. |
-| S16 Miroirs | TODO | Vérifier une réflexion planaire dynamique, son coût et ses occultations. |
-| S17 Références | TODO | Une référence et une vue privées. Vérifier plusieurs états indépendants de l’état initial public. |
-| S18 Mélange | TODO | Permutation et rotations facultatives, indépendantes des règles. Vérifier les mélanges par opérations légales et leurs diagnostics. |
-| S19 Outils Player | TODO | Six autorisations publiques. Vérifier leur application au contrôleur et la réduction des commandes en observation seule. |
-| S20 Test intégré | TODO | Onglet Player alimenté par un export public IndexedDB. Vérifier vue intégrée, réinitialisation et absence de données privées dans le Player. |
-| S21 Projets | IN_PROGRESS | Brouillon unique et fichier privé V1. Vérifier la migration, l’isolation des projets, les écritures concurrentes et la composition avant sauvegarde. |
-| S22 Historique | TODO | Instantanés de cubes bornés en nombre. Vérifier le retour arrière sur les calques, poses et écartements, et mesurer le coût mémoire. |
-| S23 Diagnostic | TODO | Contrôle du format, du volume et des poses. Vérifier les mesures de rendu et l’audit de l’export, textures incluses. |
-| S24 Démonstrations | TODO | Trois démos techniques de manipulation. Qualifier dix énigmes reproductibles et leurs indices visuels. |
-| S25 Performance | TODO | Maillages retenus, caches et rendu à la demande. Mesurer de 1 à 512 cubes avant et après optimisation. |
-| S26 Tests | TODO | 12 tests unitaires et un parcours Chromium. Vérifier état, géométrie, pixels, gestes, tailles de fenêtre et captures d’échec. |
-| S27 Documentation | TODO | Pages publie les entrées et les sources. Vérifier chemins relatifs, documentation et blocage du déploiement après un échec Chromium. |
+| S01 | IN_PROGRESS | Modules privés pour projets, dessin, volumes, bibliothèques et références. Extraction de l’orchestration restante et validation unifiée encore partielles. |
+| S02 | IN_PROGRESS | Actions globales et test intégré en en-tête. Panneaux redimensionnables et qualification sur petits écrans à compléter. |
+| S03 | IN_PROGRESS | Zoom, panoramique, plein écran, grille réglable, coordonnées, lignes contraintes, ellipse et triangle. Guides, courbes, sélection, remplissage intelligent et pipette à compléter. |
+| S04 | IN_PROGRESS | Calques matriciels renommables, dupliqués, verrouillables et fusionnables. Vecteurs, groupes et masques éditables à faire. |
+| S05 | IN_PROGRESS | PNG, JPEG, WebP avec aperçu, ajustement, remplissage, position, zoom, rotation, retournement et alpha. SVG assaini et suppression d’une couleur de fond à faire. |
+| S06 | IN_PROGRESS | Bibliothèque IndexedDB partagée pour cubes, faces, matériaux, volumes et assemblages, avec recherche et sauvegarde/restauration additive. Symboles et modèles d’énigmes dédiés à faire. |
+| S07 | IN_PROGRESS | Maillages creux, parois, cadre, plaque, tunnels rectangulaires. Normales, UV et passages testés. Ouvertures circulaires et polygonales exactes à faire. |
+| S08 | IN_PROGRESS | Grilles 2, 4, 8 et 16 par axe, édition individuelle par couche et regroupement des surfaces coplanaires. Édition régionale, symétrie et extrusion à faire. |
+| S09 | IN_PROGRESS | Teinte, opacité, alpha mélangé ou découpé, éclairé, émissif, neutre et miroir. Tri des transparences complexes et ombres partielles à approfondir. |
+| S10 | IN_PROGRESS | Translation et duplication atomiques de la sélection. Placement direct et catalogue complet de contraintes publiques à faire. |
+| S11 | IN_PROGRESS | Fresques XY, XZ et YZ, avec rotation, découpe et transparence. Projection sur un assemblage existant et aperçu du découpage à faire. |
+| S12 | IN_PROGRESS | Projections sur sélection, face désignée et calque privé. Analyse d’occultation, masques et aperçu des pertes à faire. |
+| S13 | IN_PROGRESS | Pixels, bandes, régions et profondeur variable. Analyse des couches et géométries libres à faire. |
+| S14 | IN_PROGRESS | Génération inverse limitée à une lumière directionnelle verticale et au récepteur horizontal. Spots, lumière ponctuelle et comparaison visuelle quantitative à faire. |
+| S15 | IN_PROGRESS | Génération d’évidements internes traversants à partir d’un masque. Construction multi-profondeur entre fragments à compléter. |
+| S16 | TESTED | Deux faces planes et opaques sur cubes pleins, réflexion perspective 256 × 256 et une passe par miroir au maximum par rendu principal. Qualification visuelle de scénarios à plusieurs miroirs à faire. |
+| S17 | IN_PROGRESS | Références nommées et annotées, duplication, suppression, restauration et comparaison par poses. Les dimensions du plan de réception restent hors schéma. |
+| S18 | IN_PROGRESS | Opérations réversibles selon les autorisations de permutation et de rotation, axes et nombre d’opérations, vue initiale explicite. Mélange par groupe et diagnostics de contraintes à faire. |
+| S19 | IN_PROGRESS | Autorisations d’observation, zoom et projection et contrôles de groupe masqués à un cube. Granularité des rotations, déplacements et sélections à compléter. |
+| S20 | IN_PROGRESS | Onglet et fenêtre intégrée, rechargement et réinitialisation via le Player. Comparaison visuelle privée côte à côte à faire. |
+| S21 | IN_PROGRESS | Projets nommés, versions restaurables, autosave, copie et concurrence par révision. Miniatures de projets et tests de récupération forcée à compléter. |
+| S22 | IN_PROGRESS | Historique commun des cubes, calques, géométries et écartements, 40 entrées. Optimisation de la mémoire et couverture de l’ensemble des métadonnées privées à faire. |
+| S23 | IN_PROGRESS | Audit du schéma public, réencodage des textures, statistiques instantanées du rendu et contrôle des poses. Randomisation du repère et étude de fuite visuelle à faire. |
+| S24 | TODO | Trois démos techniques existantes pour 1, 4 et 18 cubes. Les dix énigmes de jeu restent à créer et qualifier. |
+| S25 | IN_PROGRESS | Mesures de 1 à 512 cubes unis et réduction de six à un appel par cube uni. Campagne avec textures, ombres, miroirs et navigation secondaire à compléter. |
+| S26 | IN_PROGRESS | Suites unitaires étendues et parcours Chromium avec assertions d’état, pixels et captures d’échec. Couverture complète des gestes et des tailles de fenêtre à faire. |
+| S27 | IN_PROGRESS | Guide Studio, formats, mesures documentées et Pages conditionné par les tests. Exécution distante et déploiement final à vérifier. |
 
 Ordre de livraison : consolidation (S01, S02, S21, S22), création graphique (S03–S06), géométrie et assemblage (S07–S10), optique (S11–S16), préparation (S17–S20, S23), qualification (S24–S27).

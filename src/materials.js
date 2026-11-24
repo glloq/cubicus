@@ -14,7 +14,7 @@ export function faceMaterials(value) {
 export function validateMirrors(cubes) {
   let mirrors = 0;
   for (const cube of cubes) for (const [face, material] of (cube.materials ?? []).entries()) {
-    if (material.mode !== 'mirror') continue;
+    if (material?.mode !== 'mirror') continue;
     if (cube.volume || (cube.opacity?.[face] ?? 1) !== 1) {
       throw new Error('Une face miroir exige un cube plein et une opacité de 100 %.');
     }
