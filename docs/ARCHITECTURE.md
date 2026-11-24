@@ -25,3 +25,11 @@ Studio includes a six-face thumbnail net, text stamping, project-local reusable 
 
 ## V0.3 direct manipulation
 The shared viewport uses Three.js raycasting for selection and drag/drop swaps. Rotation handles are actual 3D meshes, with color-coded world axes and signed quarter-turns. Rotate, Move and Observe modes isolate pointer interactions. Right drag orbits; wheel zooms. View shortcuts orient the camera to six faces or an oblique view. Group rotations use the existing exact grid model. Light still uses independent azimuth/elevation sliders. Browser acceptance remains required; no solution logic has been added.
+
+## V0.4 interaction and acceptance
+- Fixed scene initialization ordering. Retained meshes and shared geometry reduce GPU churn; face textures are cached and unused textures released.
+- Player has a floating contextual dock, animated quarter-turns and swap destination outline. Observe mode uses left drag as well as the permanent right-drag orbit. Orthographic projection is available from view shortcuts.
+- Light mode: drag in viewport to change azimuth/elevation; optional real shadow receiver. Shadows are off by default.
+- Studio > Outils du joueur configures public boolean capabilities. Export allowlists these booleans. They are interaction settings, not a security boundary.
+- Chromium smoke workflow exercises Studio opening, face text, shuffle, popup playtest, lighting, projection, demo selection, rotations, undo and reset. Unit tests still cover the integer pose model. Browser CI is separate from Pages deploy and requires CDN connectivity.
+- Outstanding: true drag along 3D empty slots, orientation cube, per-axis spacing handles, authored puzzle examples, project autosave, stronger export audits, optical projection authoring and mobile usability qualification.
