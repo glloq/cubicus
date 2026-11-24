@@ -4,7 +4,7 @@ import * as T from 'three';
  * Each texel samples the source at its projected screen coordinate.
  * Authoring only; neither camera nor source image is serialized in a puzzle.
  */
-export function bakeProjection(image,view,cubes,{resolution=256}={}){
+export function bakeProjection(image,view,cubes,{resolution=256,preserve=false}={}){
  if(![128,256,512].includes(resolution))throw Error('Résolution invalide');
  if(cubes.length>64)throw Error('Projection limitée à 64 cubes');
  if(view.animating)throw Error('Attendre la fin de la rotation');
@@ -32,6 +32,7 @@ export function bakeProjection(image,view,cubes,{resolution=256}={}){
  const normal=new T.Vector3(),toCamera=new T.Vector3(),center=new T.Vector3();
  for(const c of result){const m=byId.get(c.id);if(!m)continue;
   for(let f=0;f<6;f++){
+   if(preserve&&c.faces[f])continue;
    center.set(...facePoint(f,.5,.5)).applyMatrix4(m.matrixWorld);
    normal.set(...normals[f]).transformDirection(m.matrixWorld);
    if(camera.isOrthographicCamera)camera.getWorldDirection(toCamera).negate();else toCamera.copy(camera.position).sub(center).normalize();
@@ -43,7 +44,7 @@ export function bakeProjection(image,view,cubes,{resolution=256}={}){
     const i=(y*resolution+x)*4,j=(sy*1024+sx)*4;
     out.data[i]=pixels[j];out.data[i+1]=pixels[j+1];out.data[i+2]=pixels[j+2];out.data[i+3]=255;
    }
-   ctx.putImageData(out,0,0);c.faces[f]=tile.toDataURL('image/png');count++;
+   ctx.putImageData(out,0,0);c.faces[f]=tile.toDataURL('image/png');if(c.layers)c.layers[f]=[];count++;
   }
  }
  return {cubes:result,count};
