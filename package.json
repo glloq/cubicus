@@ -1,10 +1,10 @@
 {
   "name": "cubicus",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/model.js && node --check src/scene.js && node --check src/controller.js && node --check src/studio.js && node --check src/player.js && node --check src/storage.js"
+    "check": "node --check src/model.js && node --check src/scene.js && node --check src/controller.js && node --check src/studio.js && node --check src/player.js && node --check src/storage.js && node --check src/demo.js"
   }
 }
