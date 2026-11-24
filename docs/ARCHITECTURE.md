@@ -22,3 +22,6 @@ Persistent reusable library across projects, vector editing and non-destructive 
 
 ## V0.2 playtest
 Studio includes a six-face thumbnail net, text stamping, project-local reusable cube models, and movement by one cell along each axis. Player includes textured demos. Public exports randomize array order and IDs. Enable GitHub Pages manually if configure-pages fails. The prior CI passed; browser validation remains pending.
+
+## V0.3 direct manipulation
+The shared viewport uses Three.js raycasting for selection and drag/drop swaps. Rotation handles are actual 3D meshes, with color-coded world axes and signed quarter-turns. Rotate, Move and Observe modes isolate pointer interactions. Right drag orbits; wheel zooms. View shortcuts orient the camera to six faces or an oblique view. Group rotations use the existing exact grid model. Light still uses independent azimuth/elevation sliders. Browser acceptance remains required; no solution logic has been added.
