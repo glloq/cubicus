@@ -18,5 +18,5 @@ try{
  await page.locator('#mural').setInputFiles(fixture);await page.locator('#muralCreate').click();await page.locator('#status').filter({hasText:'Fresque créée'}).waitFor();
  await page.locator('summary').filter({hasText:'Projection anamorphique'}).click();await page.locator('#projectionImage').setInputFiles(fixture);await page.locator('#projectImage').click();await page.locator('#status').filter({hasText:'faces texturées'}).waitFor();await page.locator('#projectionView').click();
  await page.waitForTimeout(1000);await page.reload();await page.locator('#recover').click();await page.locator('#status').filter({hasText:'Brouillon récupéré'}).waitFor();
- assert.deepEqual(errors,[]);console.log('Studio → Player smoke OK');
+ await page.locator('summary').filter({hasText:'Superposition optique'}).click();await page.locator('#overlayImage').setInputFiles(fixture);await page.locator('#overlayCreate').click();await page.locator('#status').filter({hasText:'Superposition créée'}).waitFor();assert.deepEqual(errors,[]);console.log('Studio → Player smoke OK');
 }finally{await browser.close()}
