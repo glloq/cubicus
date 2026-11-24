@@ -235,7 +235,21 @@ export class SceneView {
   this.extent=Math.max(2,...this.meshes.map(m=>m.position.length()+1),...transitions.map(a=>a.p.length()+1));this.receiver.position.y=Math.min(0,...this.meshes.map(m=>m.position.y))-.65;const sc=this.light.shadow.camera;sc.left=sc.bottom=-this.extent*1.5;sc.right=sc.top=this.extent*1.5;sc.far=1000;sc.updateProjectionMatrix();
   this.animating=transitions.length>0;this.updateGizmo(selected);if(this.animating){const start=performance.now();const frame=now=>{if(token!==this.animationToken)return;const t=Math.min(1,(now-start)/180),ease=t*t*(3-2*t);for(const a of transitions){a.m.position.lerpVectors(a.from,a.p,ease);a.m.quaternion.slerpQuaternions(a.rot,a.q,ease)}if(t<1)requestAnimationFrame(frame);else{this.animating=false;this.updateGizmo(this.selectedIds);this.onAnimationEnd?.()}this.render()};requestAnimationFrame(frame)}this.render()
  }
- fit(){const n=Math.max(2,this.extent||2);this.camera.position.set(n*1.3,n,n*1.8);this.orbit.target.set(0,0,0);if(this.camera.isOrthographicCamera){this.orthoHeight=n*2.5;this.camera.zoom=1;this.resize()}this.orbit.update();this.render()}
+ fit() {
+  const extent = Math.max(2,this.extent||2);
+  const aspect = this.host.clientWidth / Math.max(1,this.host.clientHeight);
+  const framing = Math.max(1,.85 / (aspect || 1));
+  const size = extent * framing;
+  this.camera.position.set(size*1.3,size,size*1.8);
+  this.orbit.target.set(0,0,0);
+  if (this.camera.isOrthographicCamera) {
+   this.orthoHeight = size*2.5;
+   this.camera.zoom = 1;
+   this.resize();
+  }
+  this.orbit.update();
+  this.render();
+ }
  setLightEquipment(type){
   if(this.lightType===type)return;
   this.light.removeFromParent();

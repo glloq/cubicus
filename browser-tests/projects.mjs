@@ -13,18 +13,25 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   await page.goto((process.env.BASE_URL || 'http://127.0.0.1:8080') + '/studio.html');
   await page.locator('#view > canvas').waitFor();
-  await page.locator('#localProjects summary').click();
+  async function openProjects() {
+    if (await page.locator('#localProjects').getAttribute('open') === null) {
+      await page.locator('#localProjects summary').click();
+    }
+  }
+  await openProjects();
   await page.locator('#projectName').fill('Atelier A');
   await page.locator('#add').click();
   await page.locator('#saveLocal').click();
   await page.getByRole('status').filter({hasText: 'Projet enregistré'}).waitFor();
   const original = await page.locator('#projectList').inputValue();
+  await openProjects();
   await page.locator('#duplicateLocal').click();
   await page.getByRole('status').filter({hasText: 'Projet dupliqué'}).waitFor();
   assert.equal(await page.locator('#projectName').inputValue(), 'Atelier A (copie)');
   await page.locator('#add').click();
   await page.locator('#saveLocal').click();
   await page.getByRole('status').filter({hasText: 'Projet enregistré'}).waitFor();
+  await openProjects();
   await page.locator('#restoreLocal').click();
   await page.getByRole('status').filter({hasText: 'Version restaurée'}).waitFor();
   assert.equal(await page.locator('#cubePicker option').count(), 5);
@@ -76,6 +83,15 @@ try {
   assert.deepEqual(imported, [0, 128]);
   assert.equal(await page.locator('#blendFace').isChecked(), true);
 
+  await page.locator('#fullFace').click();
+  await page.waitForFunction(() => document.fullscreenElement?.dataset.inspectorPanel === 'drawing');
+  assert.equal(await page.locator('#brush').isVisible(), true);
+  await page.locator('#fullFace').click();
+  await page.waitForFunction(() => !document.fullscreenElement);
+
+  await page.locator('[data-inspector=material]').click();
+  assert.equal(await page.locator('#blendFace').isVisible(), true);
+  await page.locator('[data-inspector=geometry]').click();
   await page.locator('#volumeEditor summary').click();
   await page.locator('#volumePreset').selectOption('tunnel');
   await page.locator('#volumeApply').click();

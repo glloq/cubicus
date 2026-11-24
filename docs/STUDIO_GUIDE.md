@@ -32,3 +32,7 @@ Dans **Préparer → Outils du joueur**, choisissez un profil, ou demandez une s
 Dans **Assemblage**, sélectionnez les cubes concernés avant d’appliquer les contraintes. Une case autorisée s’écrit `X,Y,Z` sur sa propre ligne. Les coordonnées actuelles doivent figurer dans les places autorisées. Dans **Groupes définis**, sélectionnez, renommez, copiez ou dissolvez les groupes. Une copie utilise le décalage configuré pour la sélection et crée un groupe distinct.
 
 Le mode création peut déplacer des cubes que le joueur verra verrouillés. Vérifiez ensuite les avertissements de cohérence. Le mélange peut utiliser la sélection seule et une graine privée. Ses opérations sont validées avec les droits du Player. [Guide des commandes](PLAYER_CONTROLS.md)
+
+## Se repérer dans l’atelier
+
+Les parcours dans **Assemblage** ouvrent directement un outil d’édition ou un générateur. **Inspecter la face** ouvre le dessin depuis la scène. L’inspecteur sépare **Dessin**, **Matière** et **Volume**. Dans **Préparer**, utilisez **Contrôler l’export** pour vérifier le fichier public avant de le télécharger. Le menu **Projets** donne accès aux fichiers privés, au brouillon et aux versions locales.

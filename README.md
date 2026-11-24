@@ -42,5 +42,6 @@ Le serveur HTTP doit tourner pour les deux dernières commandes. Définissez `CH
 - [Commandes du Player et migration](docs/PLAYER_CONTROLS.md)
 - [Feuille de route des contrôles adaptatifs](docs/ADAPTIVE_CONTROLS_ROADMAP.md)
 - [Architecture](docs/ARCHITECTURE.md)
+- [Audit et évolution de l’interface](docs/UX_AUDIT.md)
 - [État des chantiers V1](docs/STUDIO_V1_ROADMAP.md)
 - [Mesures de performance](docs/PERFORMANCES.md)

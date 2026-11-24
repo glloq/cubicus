@@ -1,1 +1,34 @@
-<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cubicus</title><link rel="stylesheet" href="./src/style.css"><script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script><header><strong>CUBICUS</strong><label>Ouvrir énigme <input id="load" type="file" accept=".puzzle,.json"></label><label>Démo <select id="demo"><option value="1">1 cube</option><option value="4" selected>4 cubes</option><option value="18">18 cubes</option></select></label><button id="reset">Réinitialiser</button></header><div class="layout player"><section id="view"></section><aside id="controls"></aside></div><p id="status" role="status"></p><script type="module" src="./src/player.js"></script></html>
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Cubicus · Player</title>
+  <link rel="stylesheet" href="./src/style.css"><link rel="stylesheet" href="./src/workspace.css">
+  <script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head>
+<body class="player-page">
+  <header class="app-header">
+    <a class="brand" href="./index.html" aria-label="Accueil Cubicus"><span class="brand-mark" aria-hidden="true">C</span><span>Cubicus <small>Player</small></span></a>
+    <div class="player-puzzle">
+      <strong id="puzzleName">Démonstration</strong>
+      <span id="puzzleMeta"></span>
+    </div>
+    <div class="player-actions">
+      <label class="demo-choice"><span>Démo</span> <select id="demo"><option value="1">1 cube</option><option value="4" selected>4 cubes</option><option value="18">18 cubes</option></select></label>
+      <label class="file-button">Ouvrir une énigme <input id="load" type="file" accept=".puzzle,.json"></label>
+      <button id="reset">Réinitialiser</button>
+    </div>
+  </header>
+  <main class="layout player" aria-label="Énigme">
+    <section id="view" aria-label="Scène 3D"></section>
+    <aside id="controls" aria-label="Commandes de jeu"></aside>
+    <details class="player-help" id="playerHelp">
+      <summary>Aide de jeu</summary>
+      <ul id="playerTips"></ul>
+    </details>
+  </main>
+  <p id="status" role="status"></p>
+  <script type="module" src="./src/player.js"></script>
+</body>
+</html>
