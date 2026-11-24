@@ -11,3 +11,5 @@ test('rigid layer rotation preserves grid and four turns restore poses',()=>{con
 test('rigid rotation rejects fractional slots and collisions atomically',()=>{const c=grid(2,1,1),before=structuredClone(c);assert.equal(rotateGroup(c,c.map(x=>x.id),'Z',1),false);assert.deepEqual(c,before);const d=grid(3,2,1),ids=d.filter(x=>x.p[1]===0).map(x=>x.id),original=structuredClone(d);assert.equal(rotateGroup(d,ids,'Z',1),false);assert.deepEqual(d,original)});
 
 test('public control allowlist excludes solution metadata',()=>{const p=exportPuzzle(grid(1,1,1),{rotate:false,answer:'secret',target:[1,2,3]});assert.equal(p.controls.rotate,false);assert.equal(p.controls.move,true);assert.equal('answer' in p.controls,false);assert.equal('target' in p.controls,false);assert.equal(publicControls(null).rotate,true)});
+
+test('optical material export is sanitized',()=>{const c=grid(1,1,1);c[0].opacity=[-1,.5,2,0,1,1];c[0].alphaFaces=[true,false,false,false,false,false];const p=exportPuzzle(c);assert.deepEqual(p.cubes[0].opacity,[0,.5,1,0,1,1]);assert.deepEqual(validate(p)[0].alphaFaces,[true,false,false,false,false,false])});
