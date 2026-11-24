@@ -19,3 +19,5 @@
 [hidden]{display:none!important}
 
 #paint{background-color:#35414d;background-image:conic-gradient(#46535f 25%,#35414d 0 50%,#46535f 0 75%,#35414d 0);background-size:20px 20px}#opacityValue{font-size:12px;color:#b9cddd}
+
+.player #controls[data-mode=spacing] .selectiontools{display:none}.player #controls:not([data-mode=spacing]) .spacingtools{display:none}.player #controls[data-mode=spacing] .toolstrip button[data-mode=spacing]{background:#386d79}.player #controls .toolstrip button{white-space:nowrap}
