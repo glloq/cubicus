@@ -133,6 +133,7 @@ export class Controller {
       }
     };
     view.onLightEnd = () => this.finishLight();
+    view.onAnimationEnd=()=>this.refreshControls();
     view.onHandle = ({axis,sign}) => this.rotate(axis,sign);
     view.globalGapValue = () => Number(this.control('gap').value)/100;
     view.onGapStart = () => { this.gapBefore = this.snapshot(); };
@@ -356,6 +357,10 @@ export class Controller {
     if (!this.index || this.index.cubes !== this.cubes) this.updateIndex();
     const group = this.refreshControls();
     this.view.update(this.cubes,group.map(cube => cube.id),this.spacing,animate);
+    if(this.view.animating){
+      for(const {button} of [...this.rotationButtons,...this.moveButtons])button.disabled=true;
+      this.swapButton.disabled=true;
+    }
   }
 
   changed(animate = false) { this.index = null; this.draw(animate); this.onChange(); }

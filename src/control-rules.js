@@ -31,8 +31,9 @@ export function controlRules(raw) {
     rules[category] = {};
     for (const [key, fallback] of Object.entries(fields)) {
       const value = legacy ? undefined : raw[category]?.[key];
+      const alias = off[category]?.[key];
       rules[category][key] = typeof fallback === 'boolean'
-        ? (typeof value === 'boolean' ? value : fallback && (!legacy || raw?.[off[category]?.[key]] !== false))
+        ? (typeof value === 'boolean' ? value : fallback && (!legacy || !alias || raw?.[alias] !== false))
         : Array.isArray(fallback) ? normalizeAxes(value, fallback) : range(value, fallback, category === 'camera' ? .05 : key === 'step' ? .01 : 0, category === 'camera' ? (['near','far'].includes(key) ? 1000 : 50) : 2);
     }
   }

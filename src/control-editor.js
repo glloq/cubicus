@@ -22,7 +22,7 @@ const profiles = {
   mural:['Fresque',{rotation:{individual:true},movement:{swap:true}}],
   interior:['Inscription intérieure',{spacing:{global:true,independentAxes:true}}],
   spatial:['Assemblage spatial',{rotation:{individual:true},movement:{swap:true,emptySlots:true},selection:{line:true,layer:true}}],
-  anamorph:['Anamorphose',{camera:{pan:true},spacing:{global:true,independentAxes:true}}],
+  anamorph:['Anamorphose',{camera:{pan:true,roll:true},spacing:{global:true,independentAxes:true}}],
   overlay:['Superposition optique',{rotation:{individual:true},spacing:{global:true}}],
   shadow:['Projection d’ombres',{lighting:{direction:true,shadows:true},rotation:{individual:true}}],
   complex:['Assemblage complexe',{rotation:{individual:true,simultaneous:true,collective:true},
@@ -31,7 +31,7 @@ const profiles = {
     spacing:{global:true,independentAxes:true},lighting:{direction:true,shadows:true}}]
 };
 
-function pickProfile(id) {
+export function createControlProfile(id) {
   const baseline = controlRules();
   const patches = profiles[id]?.[1];
   if (!patches) return baseline;
@@ -125,14 +125,19 @@ export function bindControlEditor(host,{read,write,cubes,opening,status}) {
     if (!profiles[id]) return;
     profile.value = id;
     lastProfile = id;
-    write(pickProfile(id));
+    write(createControlProfile(id));
     render();
   }
   profile.onchange = () => setProfile(profile.value);
   reset.onclick = () => {if(lastProfile)setProfile(lastProfile);};
   suggest.onclick = () => {
-    recommendation = opening()?.shadows ? 'shadow' : cubes().length === 1
-      ? cubes()[0].constraints?.fixed ? 'observation' : 'cube' : cubes().length > 27 ? 'complex' : 'spatial';
+    const list=cubes();
+    if(opening()?.shadows) recommendation='shadow';
+    else if(list.length===1) recommendation=list[0].constraints?.fixed?'observation':'cube';
+    else if(list.some(cube=>cube.materials?.some(material=>material.blend)||cube.opacity?.some(value=>value<1))) recommendation='overlay';
+    else if(list.length>27) recommendation='complex';
+    else if(list.some(cube=>cube.faces.some(Boolean))&&[0,1,2].some(axis=>list.every(cube=>cube.p[axis]===list[0].p[axis]))) recommendation='mural';
+    else recommendation='spatial';
     apply.hidden = false;
     status('Suggestion : '+profiles[recommendation][0]);
   };

@@ -24,3 +24,11 @@ Le fichier `.puzzle` V1 contient les poses initiales, les matériaux, les volume
 ## Publication
 
 Dans GitHub, sélectionnez **Settings → Pages → Build and deployment → GitHub Actions**. Sur `main`, le déploiement attend la validation de la syntaxe, des unités et du parcours Chromium. L’artefact publie les pages et ressources statiques aux chemins `/`, `/studio.html` et `/play.html` sous le préfixe du dépôt. Vérifiez que les archives de travail, réponses et images sources privées sont absentes de tout commit destiné à être publié.
+
+## Préparer les contrôles adaptatifs
+
+Dans **Préparer → Outils du joueur**, choisissez un profil, ou demandez une suggestion puis appliquez-la explicitement. Les sections Caméra, Rotation, Déplacement, Sélection, Écartement, Éclairage et Historique règlent les droits. L’aperçu textuel se recalcule depuis l’assemblage. **Tester ici** charge exactement la vue publique du Player.
+
+Dans **Assemblage**, sélectionnez les cubes concernés avant d’appliquer les contraintes. Une case autorisée s’écrit `X,Y,Z` sur sa propre ligne. Les coordonnées actuelles doivent figurer dans les places autorisées. Dans **Groupes définis**, sélectionnez, renommez, copiez ou dissolvez les groupes. Une copie utilise le décalage configuré pour la sélection et crée un groupe distinct.
+
+Le mode création peut déplacer des cubes que le joueur verra verrouillés. Vérifiez ensuite les avertissements de cohérence. Le mélange peut utiliser la sélection seule et une graine privée. Ses opérations sont validées avec les droits du Player. [Guide des commandes](PLAYER_CONTROLS.md)

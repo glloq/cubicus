@@ -103,9 +103,9 @@ export class SceneView {
  setMode(mode){this.mode=mode;this.orbit.mouseButtons.LEFT=mode==='select'?T.MOUSE.ROTATE:null;this.orbit.touches.ONE=mode==='select'?T.TOUCH.ROTATE:null;this.renderer.domElement.style.cursor=mode==='move'?'grab':mode==='light'||mode==='spacing'?'crosshair':mode==='select'?'grab':'default';this.updateGizmo(this.selectedIds);this.render()}
  updateGizmo(selected){
  const active=this.mode==='spacing'?this.spacingAxes??AXES:this.rotationHandles??AXES;
- const meshKey=this.mode==='spacing'
-  ? this.meshes.map(mesh=>mesh.position.toArray().join(',')).join(';')
-  : this.meshes.filter(mesh=>selected.includes(mesh.userData.id)).map(mesh=>mesh.position.toArray().join(',')).join(';');
+ const ids=new Set(selected);
+ const relevant=this.mode==='spacing'?this.meshes:this.mode==='rotate'?this.meshes.filter(mesh=>ids.has(mesh.userData.id)):[];
+ const meshKey=relevant.map(mesh=>mesh.position.toArray().join(',')).join(';');
  const key=JSON.stringify([this.mode,selected,this.animating,active,this.handleAnchor,this.globalSpacing,meshKey]);
  this.selectedIds=selected;
  if(this.gizmoKey===key)return;

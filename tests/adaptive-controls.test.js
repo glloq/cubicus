@@ -124,3 +124,30 @@ test('illumination capabilities distinguish source type and scrub presentation m
     lighting:{type:'spot',position:[1,2,3],angle:120,intensity:1,privateName:'private'}};
   assert.deepEqual(exportPuzzle(cubes,config,view).view.lighting,{type:'spot',position:[1,2,3],angle:90,intensity:1});
 });
+
+test('presets cover observation, individual rotation, murals, optics and complex assemblies', async () => {
+  const {createControlProfile}=await import('../src/control-editor.js');
+  const presets=['observation','cube','mural','interior','spatial','anamorph','overlay','shadow','complex'];
+  assert.equal(new Set(presets.map(id=>JSON.stringify(createControlProfile(id)))).size,9);
+  assert.equal(createControlProfile('observation').rotation.individual,false);
+  assert.equal(createControlProfile('cube').rotation.individual,true);
+  assert.equal(createControlProfile('mural').movement.swap,true);
+  assert.equal(createControlProfile('interior').spacing.global,true);
+  assert.equal(createControlProfile('shadow').lighting.direction,true);
+  assert.equal(createControlProfile('complex').movement.groupSwap,true);
+});
+
+test('private diagnostics distinguish opt-in observation from contradictory joint constraints', async () => {
+  const {controlDiagnostics}=await import('../src/control-actions.js');
+  const cubes=grid(2,1,1);
+  const [a,b]=cubes;
+  a.constraints={group:'private',solid:true};
+  b.constraints={group:'private',noGroup:true,slots:[[10,0,0]]};
+  const report=controlDiagnostics(actionState(cubes,rules()),{spacing:[3,0,0]});
+  assert.equal(report.errors.length,3);
+  assert.equal(report.movable,2);
+  const {createControlProfile}=await import('../src/control-editor.js');
+  const observation=controlDiagnostics(actionState([cube()],createControlProfile('observation')));
+  assert.equal(observation.tools,1);
+  assert.deepEqual(observation.errors,[]);
+});

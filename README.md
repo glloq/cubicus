@@ -26,6 +26,8 @@ Le serveur HTTP doit tourner pour les deux dernières commandes. Définissez `CH
 ## Ressources
 
 - [Guide Studio, formats et publication](docs/STUDIO_GUIDE.md)
+- [Commandes du Player et migration](docs/PLAYER_CONTROLS.md)
+- [Feuille de route des contrôles adaptatifs](docs/ADAPTIVE_CONTROLS_ROADMAP.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [État des chantiers V1](docs/STUDIO_V1_ROADMAP.md)
 - [Mesures de performance](docs/PERFORMANCES.md)

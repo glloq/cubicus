@@ -39,3 +39,5 @@ Les états décrivent l’avancement du chantier entier. Un chantier IN_PROGRESS
 | S27 | IN_PROGRESS | Guide Studio, formats, mesures documentées et Pages conditionné par les tests. Exécution distante et déploiement final à vérifier. |
 
 Ordre de livraison : consolidation (S01, S02, S21, S22), création graphique (S03–S06), géométrie et assemblage (S07–S10), optique (S11–S16), préparation (S17–S20, S23), qualification (S24–S27).
+
+La [feuille de route des contrôles adaptatifs](ADAPTIVE_CONTROLS_ROADMAP.md) suit les évolutions de S10, S18 et S19 sur la même branche.
