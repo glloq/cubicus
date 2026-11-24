@@ -107,6 +107,20 @@ try {
   await page.locator('#closePlaytest').click();
   assert.equal(await page.locator('#playtest').isVisible(), false);
 
+  const observation = await browser.newPage();
+  await observation.goto((process.env.BASE_URL || 'http://127.0.0.1:8080') + '/play.html');
+  await observation.locator('#view > canvas').waitFor();
+  const observationRules = {
+    rotate:false, move:false, groups:false, spacing:false, light:false, shadows:false, zoom:false, projection:false
+  };
+  await observation.locator('#load').setInputFiles({
+    name:'observation.puzzle', mimeType:'application/json',
+    buffer:Buffer.from(JSON.stringify({...puzzle, controls:observationRules}))
+  });
+  await observation.locator('#controls[hidden]').waitFor({state:'attached'});
+  assert.equal(await observation.getByRole('button', {name:'Ortho', exact:true}).isVisible(), false);
+  await observation.close();
+
   const conflict = await page.evaluate(async () => {
     const {writeProject, loadProject} = await import('./src/projects.js');
     const id = crypto.randomUUID();
@@ -150,7 +164,7 @@ try {
   });
   assert.deepEqual(reflection, {rendered:true, textureWidth:256, orthographicFallback:true});
   assert.deepEqual(errors, []);
-  console.log('Projets locaux, duplication, versions, historique et concurrence OK');
+  console.log('Projets, concurrence, dessin et import, volumes, références, Player et miroir OK');
 } catch (error) {
   await captureFailure(browser, 'projects').catch(console.error);
   throw error;

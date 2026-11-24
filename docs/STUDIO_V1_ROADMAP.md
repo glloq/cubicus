@@ -1,6 +1,6 @@
 # Feuille de route du Studio V1.0
 
-Point de départ : `20fa65e` (Studio V0.9). Les 12 tests unitaires et la vérification de syntaxe passent localement. L’API GitHub Actions est inaccessible via le proxy de cet environnement (HTTP 403). Sur main à ce commit, le workflow Pages ignorait Chromium. La branche fait désormais dépendre le déploiement des deux validations.
+Point de départ : `20fa65e` (Studio V0.9). Les 12 tests unitaires et la vérification de syntaxe passent localement. La page GitHub Actions confirme le succès des exécutions [Validate Cubicus](https://github.com/glloq/cubicus/actions/runs/45492510390), [Browser smoke](https://github.com/glloq/cubicus/actions/runs/45492510449) et [Deploy Cubicus](https://github.com/glloq/cubicus/actions/runs/45492510285) pour ce commit. Sur main à ce commit, le workflow Pages ignorait Chromium. La branche fait désormais dépendre le déploiement des deux validations.
 
 États : TODO, IN_PROGRESS, IMPLEMENTED, TESTED, QUALIFIED, BLOCKED. TESTED indique que les contrôles ciblés ont été exécutés. QUALIFIED exige la satisfaction des critères d’acceptation, y compris les contrôles navigateur, visuels ou de performance applicables.
 
