@@ -58,7 +58,44 @@
 <label>ΔY <input type="number" id="groupOffsetY" value="0" min="-200" max="200"></label>
 <label>ΔZ <input type="number" id="groupOffsetZ" value="0" min="-200" max="200"></label>
 <button id="translateGroup">Translater</button><button id="duplicateGroup">Copier vers le décalage</button>
-</details><details><summary>Contraintes publiques de la sélection</summary><div id="cubeConstraints"></div></details><details><summary>Groupes définis</summary><div id="groupEditor"></div></details></div><div data-panel="prepare"><section class="publish-check" aria-labelledby="publishTitle"><h2 id="publishTitle">Vérification avant export</h2><p id="publishSummary"></p><button id="auditProject">Contrôler l’export</button><pre id="auditResult" aria-live="polite"></pre></section><h2>Configuration initiale</h2><label><input id="shufflePos" type="checkbox" checked> Positions</label><label><input id="shuffleRot" type="checkbox" checked> Orientations</label><label>Nombre d’opérations <input id="mixSteps" type="number" min="1" max="200" value="20"></label>
+</details><details><summary>Contraintes publiques de la sélection</summary><div id="cubeConstraints"></div></details><details><summary>Groupes définis</summary><div id="groupEditor"></div></details></div><div data-panel="prepare"><details id="mechanismPanel"><summary>Mécanismes et parcours de test</summary>
+<label>Modèle <select id="mechanismTemplate"><option value="sequence">Serrure à séquence</option><option value="rails">Labyrinthe sur rails</option><option value="mirrors">Circuit de miroirs</option><option value="contact">Contact et verrou</option>
+<option value="connectors">Connecteurs solidaires</option><option value="hinge">Bras à charnière</option>
+<option value="fresco">Fresque à reconstituer</option><option value="window">Fenêtre traversante</option>
+<option value="double">Deux réflexions</option><option value="switched">Source commutée</option></select></label>
+<button id="loadMechanismTemplate">Charger le modèle</button>
+<details><summary>États et verrous</summary>
+<label>Nom d’état <input id="flagName" maxlength="40"></label><button id="addFlag">Ajouter un état</button>
+<label>Cube <select id="gateCube"></select></label><label>État de déverrouillage <select id="gateFlag"></select></label>
+<label><input id="gatePosition" type="checkbox"> Verrouiller seulement la position</label><button id="addGate">Ajouter le verrou</button>
+</details>
+<details><summary>Règles d’interaction</summary>
+<label>Événement <select id="ruleEvent"><option value="turn">Rotation</option><option value="move">Déplacement</option><option value="contact">Contact des faces</option><option value="beam">Capteur éclairé</option></select></label>
+<label>Cube <select id="ruleCube"></select></label>
+<div id="rotationFields"><label>Axe <select id="ruleAxis"><option value="">Tous</option><option>X</option><option>Y</option><option>Z</option></select></label>
+<label>Sens <select id="ruleSign"><option value="0">Tous</option><option value="1">Positif</option><option value="-1">Négatif</option></select></label></div>
+<div id="contactFields" hidden><label>Face locale <select id="ruleFace"></select></label><label>Autre cube <select id="ruleOther"></select></label><label>Sa face locale <select id="ruleOtherFace"></select></label></div>
+<label>État requis <select id="ruleNeeds"></select></label>
+<label>État à modifier <select id="ruleSet"></select></label><label><input id="ruleValue" type="checkbox" checked> Activer cet état</label>
+<button id="addRule">Ajouter la règle</button>
+</details>
+<details><summary>Connecteurs de faces</summary>
+<label>Cube <select id="joinCube"></select></label><label>Face <select id="joinFace"></select></label>
+<label>Autre cube <select id="joinOther"></select></label><label>Sa face <select id="joinOtherFace"></select></label>
+<button id="addJoin">Ajouter le connecteur</button>
+</details>
+<details><summary>Émetteurs, miroirs et capteurs</summary>
+<label>Dispositif <select id="deviceKind"><option value="emitter">Émetteur</option><option value="mirror">Miroir de grille</option><option value="receiver">Capteur</option></select></label>
+<label>Cube <select id="deviceCube"></select></label><label>Face locale <select id="deviceFace"></select></label>
+<label id="emitterFields">État d’activation <select id="deviceFlag"></select></label><label id="mirrorFields" hidden>Seconde face locale <select id="deviceExit"></select></label><button id="addDevice">Ajouter le dispositif</button>
+</details>
+<output id="opticalReport"></output><ul id="mechanismList"></ul>
+<details><summary>Parcours privé</summary><output id="proofCount"></output>
+<button id="recordProof" aria-pressed="false">Enregistrer les actions de manipulation</button>
+<button id="verifyProof">Vérifier le parcours depuis le départ</button><button id="clearProof">Vider le parcours</button>
+<output id="proofReport" aria-live="polite"></output></details>
+</details>
+<section class="publish-check" aria-labelledby="publishTitle"><h2 id="publishTitle">Vérification avant export</h2><p id="publishSummary"></p><button id="auditProject">Contrôler l’export</button><pre id="auditResult" aria-live="polite"></pre></section><label>Consigne publique <textarea id="publicInstructions" maxlength="500"></textarea></label><h2>Configuration initiale</h2><label><input id="shufflePos" type="checkbox" checked> Positions</label><label><input id="shuffleRot" type="checkbox" checked> Orientations</label><label>Nombre d’opérations <input id="mixSteps" type="number" min="1" max="200" value="20"></label>
 <fieldset id="mixAxes"><legend>Axes de rotation du mélange</legend>
 <label><input type="checkbox" value="X" checked> X</label><label><input type="checkbox" value="Y" checked> Y</label><label><input type="checkbox" value="Z" checked> Z</label>
 </fieldset><label><input id="mixSelected" type="checkbox"> Seulement la sélection</label>
@@ -81,18 +118,25 @@
   <button type="button" data-inspector="material" aria-pressed="false">Matière</button>
   <button type="button" data-inspector="geometry" aria-pressed="false">Volume</button>
 </div>
-<section data-inspector-panel="drawing"><div class="drawing-toolbar"><label>Outil <select id="brush"><option value="pen">Crayon</option><option value="line">Ligne</option><option value="rect">Rectangle</option><option value="circle">Cercle</option><option value="ellipse">Ellipse</option><option value="triangle">Triangle</option><option value="erase">Gomme</option><option value="stamp">Symbole</option></select></label><label>Image <input id="image" type="file" accept="image/png,image/jpeg,image/webp"></label></div><section id="faceWorkspace" aria-label="Éditeur 2D">
+<section data-inspector-panel="drawing"><div class="drawing-toolbar"><label>Outil <select id="brush"><option value="pen">Crayon</option><option value="line">Ligne</option><option value="rect">Rectangle</option><option value="circle">Cercle</option><option value="ellipse">Ellipse</option><option value="triangle">Triangle</option><option value="erase">Gomme</option><option value="stamp">Symbole</option></select></label><label>Image <input id="image" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label></div><section id="faceWorkspace" aria-label="Éditeur 2D">
 <div class="face-view-tools">
 <label>Zoom <input id="faceZoom" type="range" min="100" max="400" step="25" value="100"><output id="faceZoomValue">100 %</output></label>
 <button id="fitFace">Ajuster</button><button id="fullFace">Plein écran</button>
-<label><input type="checkbox" id="showFaceGrid"> Grille</label>
+<label><input type="checkbox" id="showFaceGrid"> Grille</label><label><input type="checkbox" id="faceGuides"> Repères axiaux</label>
 <label>Pas <input id="gridSize" type="number" min="4" max="128" value="32"></label>
 <label><input id="snapFace" type="checkbox"> Accrochage</label>
 <output id="paintCoordinates"></output>
 </div>
 <div id="paintViewport"><div id="paintSurface"><canvas id="paint" width="512" height="512"></canvas></div></div>
 <p class="help">Alt + glisser pour déplacer la vue. Maj pour contraindre une ligne.</p>
-</section><div class="paint-options"><label>Couleur <input id="color" type="color" value="#ffffff"></label><label>Épaisseur <input id="width" type="range" min="1" max="40" value="8"></label><label>Remplissage <input id="fillColor" type="color" value="#ffffff"></label><label><input id="shapeFill" type="checkbox"> Remplir les formes</label><label>Opacité du trait <input id="drawOpacity" type="range" min="1" max="100" value="100"></label><label><input id="dashLine" type="checkbox"> Trait discontinu</label></div><details><summary>Symboles et placement</summary><label>Symbole <select id="stampSymbol"><option value="cross">Croix</option><option value="triangle">Triangle</option><option value="square">Carré</option><option value="circle">Cercle</option><option value="diamond">Losange</option><option value="arrow">Flèche</option><option value="star">Étoile</option><option value="rings">Anneaux</option></select></label><label>Taille <input id="stampSize" type="range" min="16" max="480" value="160"></label><label>Angle <select id="stampAngle"><option>0</option><option>90</option><option>180</option><option>270</option></select></label><label><input id="stampFill" type="checkbox"> Remplir</label><button id="stampMode">Placer à la souris</button><button id="stampCenter">Insérer au centre</button></details><label>Texte <input id="text" type="text" maxlength="40"></label><button id="textAdd">Inscrire</button><button id="clear" class="danger-subtle">Effacer la face</button><button id="turn">Tourner image 90°</button><button id="copy">Copier face</button><button id="paste">Coller face</button><details><summary>Calques de la face</summary><select id="layerList" size="3"></select><button id="layerAdd">Ajouter calque vide</button><label>Nom <input id="layerName" maxlength="80"></label>
+</section><div class="paint-options"><label>Couleur <input id="color" type="color" value="#ffffff"></label><label>Épaisseur <input id="width" type="range" min="1" max="40" value="8"></label><label>Remplissage <input id="fillColor" type="color" value="#ffffff"></label><label><input id="shapeFill" type="checkbox"> Remplir les formes</label><label>Opacité du trait <input id="drawOpacity" type="range" min="1" max="100" value="100"></label><label><input id="dashLine" type="checkbox"> Trait discontinu</label></div><details><summary>Symboles et placement</summary><label>Symbole <select id="stampSymbol"><option value="cross">Croix</option><option value="triangle">Triangle</option><option value="square">Carré</option><option value="circle">Cercle</option><option value="diamond">Losange</option><option value="arrow">Flèche</option><option value="star">Étoile</option><option value="rings">Anneaux</option></select></label><label>Taille <input id="stampSize" type="range" min="16" max="480" value="160"></label><label>Angle <select id="stampAngle"><option>0</option><option>90</option><option>180</option><option>270</option></select></label><label><input id="stampFill" type="checkbox"> Remplir</label><button id="stampMode">Placer à la souris</button><button id="stampCenter">Insérer au centre</button></details><label>Texte <input id="text" type="text" maxlength="40"></label><button id="textAdd">Inscrire</button><button id="clear" class="danger-subtle">Effacer la face</button><button id="turn">Tourner image 90°</button><button id="copy">Copier face</button><button id="paste">Coller face</button><details><summary>Forme vectorielle</summary>
+<label>Forme <select id="vectorShape"><option value="rect">Rectangle</option><option value="ellipse">Ellipse</option><option value="triangle">Triangle</option><option value="line">Ligne</option></select></label>
+<label>X <input id="vectorX" type="number" min="0" max="512" value="128"></label><label>Y <input id="vectorY" type="number" min="0" max="512" value="128"></label>
+<label>Largeur <input id="vectorWidth" type="number" min="1" max="512" value="256"></label><label>Hauteur <input id="vectorHeight" type="number" min="1" max="512" value="256"></label>
+<label>Trait <input id="vectorStroke" type="number" min="1" max="64" value="5"></label>
+<label>Couleur <input id="vectorColor" type="color" value="#ffffff"></label><label><input id="vectorFill" type="checkbox"> Remplir</label>
+<button id="vectorAdd">Ajouter un calque de forme</button><button id="vectorUpdate" disabled>Appliquer au calque sélectionné</button>
+</details><details><summary>Calques de la face</summary><select id="layerList" size="3"></select><button id="layerAdd">Ajouter calque vide</button><label>Nom <input id="layerName" maxlength="80"></label>
 <label><input id="layerLocked" type="checkbox"> Verrouillé</label>
 <button id="layerDuplicate">Dupliquer calque</button><button id="layerFlatten">Fusionner les calques visibles</button>
 <button id="layerDelete">Supprimer calque</button><button id="layerUp">Monter</button><button id="layerDown">Descendre</button><label><input id="layerVisible" type="checkbox" checked> Visible</label><label>Opacité du calque <input id="layerOpacity" type="range" min="0" max="100" value="100"></label><p class="help">Le dessin modifie le calque actif. La scène affiche la composition.</p></details></section>
@@ -111,6 +155,10 @@
 </fieldset>
 <button id="volumeApply">Appliquer le préréglage</button><button id="volumeSolid">Revenir au cube plein</button>
 <label>Couche Z <select id="volumeLayer"></select></label><div id="volumeCells"></div>
+<fieldset id="volumeRegion" hidden><legend>Édition par région (X,Y,Z à partir de 1)</legend>
+<label>Premier coin <input id="volumeRegionStart" value="1,1,1"></label><label>Dernier coin <input id="volumeRegionEnd" value="2,2,2"></label>
+<button id="volumeFillRegion">Remplir la région</button><button id="volumeCutRegion">Évider la région</button>
+</fieldset>
 </details></section></aside></main><dialog id="imageImport" aria-label="Transformer l’image">
 <form id="imageTransform">
 <canvas id="imagePreview" width="512" height="512"></canvas>

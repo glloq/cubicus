@@ -24,6 +24,7 @@ export function bindFaceWorkspace(canvas, {checkpoint, commit, canDraw, stamp, a
     updateSize();
     viewport.scrollTo(centerX * zoom - viewport.clientWidth / 2, centerY * zoom - viewport.clientHeight / 2);
   };
+  q('faceGuides').onchange=()=>q('paintSurface').classList.toggle('face-guides',q('faceGuides').checked);
   q('fitFace').onclick = () => {
     q('faceZoom').value = 100;
     q('faceZoom').oninput({target: q('faceZoom')});

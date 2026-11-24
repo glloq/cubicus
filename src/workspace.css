@@ -334,3 +334,13 @@ input::file-selector-button {
 #embedDialog :is(input,textarea) { display: block; width: 100%; }
 #embedDialog textarea { font-family: ui-monospace, monospace; margin-bottom: 6px; }
 #embedStatus { color: var(--accent); }
+
+#paintSurface.face-guides::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent calc(50% - .5px), #d5f98bb0 50%, transparent calc(50% + .5px)),
+    linear-gradient(transparent calc(50% - .5px), #d5f98bb0 50%, transparent calc(50% + .5px));
+  z-index: 1;
+}

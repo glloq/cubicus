@@ -1,3 +1,4 @@
+import {hingeClear} from './hinge-clearance.js';
 import {AXES, validSlot} from './control-rules.js';
 import {mul, quarter, rotateGroup} from './model.js';
 
@@ -107,7 +108,11 @@ export function previewAction(state, action) {
     if (type === 'collective') {
       if (!rules.rotation.collective || members.length < 2) return null;
       changes = members.map(cube => ({id:cube.id, p:[...cube.p], r:[...cube.r]}));
-      if (!rotateGroup(changes, [...ids], axis, sign)) return null;
+      const pivots=members.map(cube=>restriction(cube).pivot);
+      const hinge=pivots.find(Boolean);
+      if(hinge&&pivots.some(pivot=>!pivot||key(pivot)!==key(hinge)))return null;
+      if (!rotateGroup(changes, [...ids], axis, sign, hinge)) return null;
+      if(hinge&&!hingeClear(members,hinge,axis,sign,occupied,ids))return null;
     } else {
       if (!(members.length === 1 ? rules.rotation.individual : rules.rotation.simultaneous)) return null;
       changes = members.map(cube => ({id:cube.id, p:cube.p, r:mul(quarter(axis, sign), cube.r)}));

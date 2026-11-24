@@ -1,8 +1,9 @@
+import {mechanismConfig} from './mechanisms.js';
 import {applySceneState, initialView} from './scene-state.js';
 import {demo} from './demo.js';
 import {SceneView} from './scene.js';
 import {Controller} from './controller.js';
-import {validate, exportPuzzle} from './model.js';
+import {validate, exportPuzzle, publicInstructions} from './model.js';
 import {getPuzzle} from './storage.js';
 import {updatePlayerContext} from './workspace-ui.js';
 
@@ -30,14 +31,22 @@ function resetView() {
 }
 
 function open(data,name) {
-  initial = validate(data);
+  const next = validate(data);
+  const mechanisms=mechanismConfig(data.mechanisms,next);
+  initial = next;
   openingView = initialView(data.view);
   ctl.history.clear();
+  ctl.configureMechanisms(null);
   ctl.replace(initial);
+  ctl.configureMechanisms(mechanisms);
   ctl.configure(data.controls);
   q('reset').hidden = !ctl.rules.history.reset;
   resetView();
   updatePlayerContext(ctl,name);
+  const instructions=publicInstructions(data.instructions);
+  q('puzzleObjective').textContent=instructions;
+  q('puzzleObjective').hidden=!instructions;
+  q('playerHelp').querySelector('summary').textContent=instructions?'Consigne et commandes':'Aide de jeu';
   q('status').textContent = '';
 }
 

@@ -1,3 +1,8 @@
+import {normalizeVector,vectorImage} from './vector-layer.js';
+import {bindMechanismEditor,emptyMechanisms} from './mechanism-editor.js';
+import {mechanismConfig} from './mechanisms.js';
+import {mechanismTemplate,templateInstructions} from './mechanism-templates.js';
+import {replayProof} from './mechanism-proof.js';
 import {bindEmbedExport} from './embed-export.js';
 import {bindWorkspace} from './workspace-ui.js';
 import {actionState,controlDiagnostics} from './control-actions.js';
@@ -16,18 +21,19 @@ import { bindVolumeEditor } from './studio-volumes.js';
 import { bindFaceWorkspace } from './face-workspace.js';
 import { bindProjects } from './studio-projects.js';
 import {drawStamp} from './stamps.js';import {privateLayers,composeLayers} from './layers.js';import {SceneView} from './scene.js';import {Controller} from './controller.js';import {cube,grid,faceOpacity,alphaFaces} from './model.js';import {demo} from './demo.js';import {overlayLayers} from './overlay.js';import {bakeProjection} from './anamorph.js';import {muralTiles} from './mural.js';import {download,putPuzzle} from './storage.js';
-let workspaceUI;
+let workspaceUI, mechanismEditor;
+let mechanisms=emptyMechanisms(), proof=[], recording=false, proofStart;
 let refsAvailable=false;
 let auditRevision=0;
 const q=id=>document.getElementById(id),canvas=q('paint'),ctx=canvas.getContext('2d');let rules=controlRules(),library=[],ctl,reference=null,referenceView=null,publicView=null,clipboard=null,paintVersion=0,faceReady=true,layerIndex=0,layerJob=0;const view=new SceneView(q('view'),(id,face)=>{q('face').value=face;layerIndex=0;ctl.select(id)});ctl=new Controller(view,q('controls'),grid(2,2,1),()=>{loadFace();refreshControlsEditor();scheduleDraft()});function selected(){return ctl.cubes.find(c=>c.id===ctl.selected)}function status(s){q('status').textContent=s}function loadFace(){volumeEditor.refresh();refreshCubePicker();refreshLayers();refreshMaterial();faceWorkspace.reset();faceReady=false;refreshNet();const version=++paintVersion;ctx.clearRect(0,0,512,512);if(!layerStack().length&&!alphaFaces(selected()?.alphaFaces)[+q('face').value]&&!faceMaterials(selected()?.materials)[+q('face').value].blend){ctx.fillStyle='#304050';ctx.fillRect(0,0,512,512)}const f=activeLayer()?.image||(!layerStack().length?selected()?.faces[+q('face').value]:null);if(f){const im=new Image();im.onload=()=>{if(version===paintVersion){ctx.drawImage(im,0,0,512,512);faceReady=true}};im.onerror=()=>{if(version===paintVersion){faceReady=true;status('Texture illisible')}};im.src=f}else faceReady=true}function commit(){const c=selected();if(!c)return;const f=+q('face').value,l=activeLayer();if(l){l.image=canvas.toDataURL('image/png');recompose(c,f)}else{c.faces[f]=canvas.toDataURL('image/png');ctl.draw();refreshNet();scheduleDraft()}}q('face').onchange=()=>{layerIndex=0;loadFace()};const faceWorkspace = bindFaceWorkspace(canvas, {
   checkpoint: () => ctl.checkpoint(),
   commit,
-  canDraw: () => Boolean(selected()) && faceReady && !activeLayer()?.locked,
+  canDraw: () => Boolean(selected()) && faceReady && !activeLayer()?.locked&&!activeLayer()?.vector,
   stamp: stampAt,
   alpha: () => q('alphaFace').checked || q('blendFace').checked || Boolean(activeLayer())
 });
 bindImageImport({
-  canApply: () => selected() && !activeLayer()?.locked && {cube: selected(), face: q('face').value, layer: activeLayer()},
+  canApply: () => selected() && !activeLayer()?.locked&&!activeLayer()?.vector && {cube: selected(), face: q('face').value, layer: activeLayer()},
   apply(preview, target) {
     if (target.cube !== selected() || target.face !== q('face').value || target.layer !== activeLayer()) {
       status('La face ou le calque actif a changé.');
@@ -47,7 +53,11 @@ bindImageImport({
   },
   status
 });
-q('clear').onclick=()=>{if(!selected()||!faceReady||activeLayer()?.locked)return;ctl.checkpoint();ctx.clearRect(0,0,512,512);if(!activeLayer()&&!q('alphaFace').checked&&!q('blendFace').checked){ctx.fillStyle='#304050';ctx.fillRect(0,0,512,512)}commit()};q('turn').onclick=()=>{if(!selected()||!faceReady||activeLayer()?.locked)return;ctl.checkpoint();const tmp=document.createElement('canvas');tmp.width=tmp.height=512;tmp.getContext('2d').drawImage(canvas,0,0);ctx.clearRect(0,0,512,512);ctx.save();ctx.translate(256,256);ctx.rotate(Math.PI/2);ctx.drawImage(tmp,-256,-256);ctx.restore();commit()};q('copy').onclick=()=>{if(!faceReady||!selected())return;clipboard=canvas.toDataURL()};q('paste').onclick=()=>{if(!selected()||!clipboard||activeLayer()?.locked)return;ctl.checkpoint();const l=activeLayer();if(l){l.image=clipboard;recompose(selected(),+q('face').value);loadFace()}else{selected().faces[+q('face').value]=clipboard;ctl.changed()}};q('generate').onclick=()=>{const dims=['nx','ny','nz'].map(id=>Math.max(1,Math.min(8,Math.floor(+q(id).value)||1)));ctl.checkpoint();ctl.replace(grid(...dims));ctl.selected=ctl.cubes[0].id;ctl.changed();view.fit(ctl.cubes)};function add(duplicate){if(ctl.cubes.length>=512)return;const p=[Math.max(-1,...ctl.cubes.map(c=>c.p[0]))+1,0,0];if(p[0]>100){status('Limite de grille');return}const c=duplicate&&selected()?{...structuredClone(selected()),id:crypto.randomUUID(),p}:cube(p);ctl.checkpoint();ctl.cubes.push(c);ctl.selected=c.id;ctl.changed();view.fit(ctl.cubes)}q('add').onclick=()=>add(false);q('duplicate').onclick=()=>add(true);q('remove').onclick=()=>{if(!selected()||ctl.cubes.length===1)return;ctl.checkpoint();ctl.replace(ctl.cubes.filter(c=>c.id!==ctl.selected))};q('shuffle').onclick = () => {
+q('clear').onclick=()=>{if(!selected()||!faceReady||activeLayer()?.locked||activeLayer()?.vector)return;ctl.checkpoint();ctx.clearRect(0,0,512,512);if(!activeLayer()&&!q('alphaFace').checked&&!q('blendFace').checked){ctx.fillStyle='#304050';ctx.fillRect(0,0,512,512)}commit()};q('turn').onclick=()=>{if(!selected()||!faceReady||activeLayer()?.locked||activeLayer()?.vector)return;ctl.checkpoint();const tmp=document.createElement('canvas');tmp.width=tmp.height=512;tmp.getContext('2d').drawImage(canvas,0,0);ctx.clearRect(0,0,512,512);ctx.save();ctx.translate(256,256);ctx.rotate(Math.PI/2);ctx.drawImage(tmp,-256,-256);ctx.restore();commit()};q('copy').onclick=()=>{if(!faceReady||!selected())return;clipboard=canvas.toDataURL()};q('paste').onclick=()=>{if(!selected()||!clipboard||activeLayer()?.locked||activeLayer()?.vector)return;ctl.checkpoint();const l=activeLayer();if(l){l.image=clipboard;recompose(selected(),+q('face').value);loadFace()}else{selected().faces[+q('face').value]=clipboard;ctl.changed()}};q('generate').onclick=()=>{const dims=['nx','ny','nz'].map(id=>Math.max(1,Math.min(8,Math.floor(+q(id).value)||1)));ctl.checkpoint();ctl.replace(grid(...dims));ctl.selected=ctl.cubes[0].id;ctl.changed();view.fit(ctl.cubes)};function add(duplicate){if(ctl.cubes.length>=512)return;const p=[Math.max(-1,...ctl.cubes.map(c=>c.p[0]))+1,0,0];if(p[0]>100){status('Limite de grille');return}const c=duplicate&&selected()?{...structuredClone(selected()),id:crypto.randomUUID(),p}:cube(p);ctl.checkpoint();ctl.cubes.push(c);ctl.selected=c.id;ctl.changed();view.fit(ctl.cubes)}q('add').onclick=()=>add(false);q('duplicate').onclick=()=>add(true);q('remove').onclick=()=>{if(!selected()||ctl.cubes.length===1)return;ctl.checkpoint();ctl.replace(ctl.cubes.filter(c=>c.id!==ctl.selected))};q('shuffle').onclick = () => {
+  if(mechanisms.gates.length||mechanisms.joins?.length){
+    status('Placez le départ manuellement avec les verrous ou connecteurs, puis vérifiez le parcours privé.');
+    return;
+  }
   const snapshot = ctl.snapshot();
   const steps = mixPuzzle(ctl.cubes, rules, {
     positions: q('shufflePos').checked,
@@ -66,12 +76,13 @@ q('clear').onclick=()=>{if(!selected()||!faceReady||activeLayer()?.locked)return
   status(steps + ' opérations de mélange autorisées exécutées.');
 };
 function publicSnapshot() {
+  if(recording)throw Error('Arrêtez l’enregistrement du parcours avant de tester ou exporter.');
   if (pendingLayers.size || hasFailedComposition()) {
     throw new Error('La composition des calques doit être terminée');
   }
   const report=controlDiagnostics(actionState(ctl.cubes,rules,publicView?.lighting?.type),publicView);
   if(report.errors.length)throw new Error(report.errors.join(' '));
-  return preparePublicPuzzle(ctl.cubes, rules, publicView);
+  return preparePublicPuzzle(ctl.cubes, rules, publicView, mechanisms, q('publicInstructions').value);
 }
 
 bindEmbedExport(publicSnapshot);
@@ -131,7 +142,7 @@ function refreshNet(){for(const b of q('net').children){const i=+b.dataset.face,
 function refreshLibrary(){q('library').replaceChildren(...library.map((c,i)=>new Option('Modèle '+(i+1),i)))}
 q('librarySave').onclick=()=>{if(!selected())return;library.push(structuredClone(selected()));refreshLibrary();scheduleDraft()};
 q('libraryAdd').onclick=()=>{const c=library[+q('library').value];if(!c||ctl.cubes.length>=512)return;const p=[Math.max(-1,...ctl.cubes.map(c=>c.p[0]))+1,0,0];if(p[0]>100)return;ctl.checkpoint();const n={...structuredClone(c),id:crypto.randomUUID(),p};ctl.cubes.push(n);ctl.selected=n.id;ctl.changed();view.fit(ctl.cubes)};
-q('textAdd').onclick=()=>{if(!selected()||!faceReady||activeLayer()?.locked||!q('text').value)return;ctl.checkpoint();ctx.fillStyle=q('color').value;ctx.font='bold 100px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(q('text').value,256,256,470);commit()};
+q('textAdd').onclick=()=>{if(!selected()||!faceReady||activeLayer()?.locked||activeLayer()?.vector||!q('text').value)return;ctl.checkpoint();ctx.fillStyle=q('color').value;ctx.font='bold 100px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(q('text').value,256,256,470);commit()};
 q('demo').onclick=()=>{ctl.checkpoint();ctl.replace(demo(4));ctl.selected=ctl.cubes[0].id;ctl.changed();view.fit(ctl.cubes)};
 const volumeEditor = bindVolumeEditor({
   selected,
@@ -158,13 +169,37 @@ const groupEditor=bindGroupEditor(q('groupEditor'),{
   duplicate:()=>shiftSelection(true)
 });
 function refreshControlsEditor(){
+  if(mechanismEditor){
+    const ids=new Set(ctl.cubes.map(cube=>cube.id));
+    if(recording&&(ids.size!==proofStart.length||proofStart.some(cube=>!ids.has(cube.id)))){
+      recording=false;
+      proofStart=undefined;
+      proof=[];
+      mechanismEditor.stop();
+      status('Assemblage modifié pendant l’enregistrement. Parcours annulé.');
+    }
+    let removed=false;
+    for(const key of ['rules','gates','optics','joins']){
+      const entries=mechanisms[key]??[];
+      const retained=entries.filter(entry=>ids.has(entry.cube)&&(!entry.other||ids.has(entry.other)));
+      if(retained.length!==entries.length){
+        mechanisms[key]=retained;
+        removed=true;
+      }
+    }
+    if(removed){
+      ctl.configureMechanisms(mechanisms);
+      ctl.draw();
+    }
+    mechanismEditor.refresh();
+  }
   workspaceUI?.refresh();
   controlEditor.diagnostic();
   constraintsEditor.refresh();
   groupEditor.refresh();
 }
 function renderRules(){controlEditor.render();}
-q('mixSeed').oninput=scheduleDraft;
+q('mixSeed').oninput=q('publicInstructions').oninput=scheduleDraft;
 ctl.onSelectionChange=()=>constraintsEditor.refresh();
 refreshControlsEditor();
 
@@ -238,7 +273,46 @@ function activeLayer(){return layerStack()[layerIndex]}
 function refreshLayers(){const list=q('layerList'),stack=layerStack();layerIndex=Math.max(0,Math.min(layerIndex,stack.length-1));list.replaceChildren(...stack.map((l,i)=>new Option(l.name,i)));list.value=String(layerIndex);const l=activeLayer();q('layerVisible').checked=l?.visible!==false;q('layerName').value=l?.name??'';q('layerLocked').checked=Boolean(l?.locked);
 q('layerName').disabled=!l;q('layerLocked').disabled=!l;
 q('layerDuplicate').disabled=!l||stack.length>=16;
-q('layerFlatten').disabled=stack.length<2||stack.some(layer=>layer.locked||!layer.visible);q('layerOpacity').value=Math.round((l?.opacity??1)*100);for(const id of ['layerDelete','layerUp','layerDown','layerVisible','layerOpacity'])q(id).disabled=!l||(id==='layerDelete'&&l.locked)}
+q('layerFlatten').disabled=stack.length<2||stack.some(layer=>layer.locked||!layer.visible);q('layerOpacity').value=Math.round((l?.opacity??1)*100);refreshVector();for(const id of ['layerDelete','layerUp','layerDown','layerVisible','layerOpacity'])q(id).disabled=!l||(id==='layerDelete'&&l.locked)}
+function refreshVector(){
+  const layer=activeLayer();
+  q('vectorUpdate').disabled=!layer?.vector||layer.locked;
+  if(!layer?.vector)return;
+  for(const [field,value] of Object.entries(layer.vector)){
+    const input=q('vector'+field[0].toUpperCase()+field.slice(1));
+    if(field==='fill')input.checked=value;
+    else input.value=value;
+  }
+}
+function vectorForm(){
+  return normalizeVector({shape:q('vectorShape').value,color:q('vectorColor').value,fill:q('vectorFill').checked,
+    ...Object.fromEntries(['x','y','width','height','stroke'].map(field=>[field,Number(q('vector'+field[0].toUpperCase()+field.slice(1)).value)]))});
+}
+q('vectorAdd').onclick=()=>{
+  const cube=selected();
+  const face=Number(q('face').value);
+  if(!cube)return;
+  const current=layerStack();
+  if(current.length>=16)return status('Limite de 16 calques.');
+  const vector=vectorForm();
+  ctl.checkpoint();
+  cube.layers??=Array.from({length:6},()=>[]);
+  const stack=cube.layers[face];
+  if(!stack.length&&cube.faces[face])stack.push({name:'Fond',image:cube.faces[face],visible:true,opacity:1});
+  stack.push({name:'Forme vectorielle',vector,image:vectorImage(vector),visible:true,opacity:1});
+  layerIndex=stack.length-1;
+  loadFace();
+  recompose(cube,face);
+};
+q('vectorUpdate').onclick=()=>{
+  const layer=activeLayer();
+  if(!layer?.vector||layer.locked)return;
+  ctl.checkpoint();
+  layer.vector=vectorForm();
+  layer.image=vectorImage(layer.vector);
+  loadFace();
+  recompose(selected(),Number(q('face').value));
+};
 q('layerName').onchange = event => {
   const layer = activeLayer();
   if (!layer || !event.target.value.trim()) return;
@@ -314,7 +388,7 @@ q('layerOpacity').onchange=e=>{if(!activeLayer())return;ctl.checkpoint();activeL
 
 function stampAt(x,y){drawStamp(ctx,{symbol:q('stampSymbol').value,x,y,size:+q('stampSize').value,angle:+q('stampAngle').value,color:q('color').value,width:+q('width').value,fill:q('stampFill').checked})}
 q('stampMode').onclick=()=>{q('brush').value='stamp';status('Cliquer sur la face pour placer le symbole')};
-q('stampCenter').onclick=()=>{if(!selected()||!faceReady||activeLayer()?.locked)return;ctl.checkpoint();stampAt(256,256);commit()};
+q('stampCenter').onclick=()=>{if(!selected()||!faceReady||activeLayer()?.locked||activeLayer()?.vector)return;ctl.checkpoint();stampAt(256,256);commit()};
 q('auditProject').onclick = async () => {
   const revision=auditRevision;
   const button=q('auditProject');
@@ -394,17 +468,24 @@ function scheduleDraft() {
   projects?.schedule();
 }
 
+function storedCubes(){
+  if(!recording)return ctl.cubes;
+  const poses=new Map(proofStart.map(({id,p,r})=>[id,{p,r}]));
+  return ctl.cubes.map(cube=>({...cube,...poses.get(cube.id)}));
+}
+
 projects = bindProjects({
   read: () => ({
     version: 2,
     name: q('projectName').value,
-    cubes: ctl.cubes,
+    cubes: storedCubes(),
     reference,
     referenceView,
     references: references.list(),
     publicView,
     library,
     controls: rules,
+    mechanisms, proof, instructions:q('publicInstructions').value,
     mixSeed: q('mixSeed').value,
     view: captureView()
   }),
@@ -417,6 +498,13 @@ projects = bindProjects({
     publicView = project.publicView;
     library = project.library;
     rules = project.controls;
+    mechanisms=project.mechanisms??emptyMechanisms();
+    proof=project.proof;
+    q('publicInstructions').value=project.instructions;
+    recording=false;
+    proofStart=undefined;
+    mechanismEditor.stop();
+    ctl.configureMechanisms(mechanisms);
     q('mixSeed').value=project.mixSeed;
     controlEditor.resetProfile();
     pendingLayers.clear();
@@ -446,7 +534,16 @@ projects = bindProjects({
 function hasFailedComposition() { return [...failedLayers.values()].some(cube => ctl.cubes.includes(cube)); }
 
 // History snapshots can be taken while another face is still being composited.
-ctl.onRestore = () => {
+ctl.captureExtra=()=>structuredClone({mechanisms,proof,rules,publicView,reference,referenceView,references:references.list(),instructions:q('publicInstructions').value});
+ctl.onRestore = extra => {
+  if(extra){
+    ({mechanisms,proof,rules,publicView,reference,referenceView}=extra);
+    references.replace(extra.references);
+    q('publicInstructions').value=extra.instructions;
+    refsAvailable=extra.references.length>0;
+    ctl.configureMechanisms(mechanisms);
+    renderRules();
+  }
   pendingLayers.clear();
   failedLayers.clear();
   for (const cube of ctl.cubes) {
@@ -581,3 +678,138 @@ function shiftSelection(duplicate) {
 }
 q('translateGroup').onclick = () => shiftSelection(false);
 q('duplicateGroup').onclick = () => shiftSelection(true);
+
+mechanismEditor=bindMechanismEditor({
+  read:()=>mechanisms, cubes:()=>ctl.cubes, status, proofLength:()=>proof.length,
+  write(next){
+    ctl.checkpoint();
+    mechanisms=next;
+    ctl.configureMechanisms(next);
+    ctl.draw();
+    scheduleDraft();
+  },
+  template(kind){
+    const sample=mechanismTemplate(kind);
+    ctl.checkpoint();
+    mechanisms=mechanismConfig(sample.mechanisms,sample.cubes)??emptyMechanisms();
+    decorateTemplate(sample.cubes,kind);
+    q('publicInstructions').value=templateInstructions[kind];
+    proof=sample.proof;
+    rules=sample.controls;
+    publicView=null;
+    reference=null;
+    referenceView=null;
+    references.replace([]);
+    refsAvailable=false;
+    recording=false;
+    proofStart=undefined;
+    mechanismEditor.stop();
+    ctl.configureMechanisms(mechanisms);
+    ctl.replace(sample.cubes);
+    ctl.selected=ctl.cubes[0].id;
+    ctl.changed();
+    renderRules();
+    view.fit(ctl.cubes);
+    if(['fresco','window'].includes(kind)){
+      if(!view.camera.isOrthographicCamera)view.toggleProjection();
+      const distance=view.camera.position.distanceTo(view.orbit.target);
+      view.setCameraUp([0,1,0]);
+      view.camera.position.copy(view.orbit.target);
+      view.camera.position.z+=distance;
+      view.orbit.update();
+      view.render();
+      publicView=captureView();
+      scheduleDraft();
+    }
+    q('proofReport').textContent='';
+    status('Modèle chargé. Ouvrez Tester ici pour jouer.');
+  },
+  record(){
+    recording=!recording;
+    if(recording){
+      ctl.checkpoint();
+      proofStart=structuredClone(ctl.cubes);
+      proof=[];
+      status('Enregistrement actif. Manipulez les cubes puis arrêtez l’enregistrement.');
+    }else{
+      // Restore only the recorded poses. Editing textures while recording remains possible.
+      const original=new Map(proofStart.map(cube=>[cube.id,cube]));
+      proofStart=undefined;
+      if(ctl.cubes.length!==original.size||ctl.cubes.some(cube=>!original.has(cube.id))){
+        proof=[];
+        status('Assemblage modifié pendant l’enregistrement. Parcours annulé.');
+        mechanismEditor.refresh();
+        scheduleDraft();
+        return false;
+      }
+      ctl.checkpoint();
+      for(const cube of ctl.cubes){
+        const {p,r}=original.get(cube.id);
+        cube.p=p;cube.r=r;
+      }
+      ctl.changed();
+      status('Parcours enregistré. Le départ est rétabli.');
+    }
+    mechanismEditor.refresh();
+    scheduleDraft();
+    return recording;
+  },
+  verify(){
+    try{
+      const result=replayProof(ctl.cubes,rules,mechanismConfig(mechanisms,ctl.cubes),proof);
+      q('proofReport').textContent=result.failed ? 'Action '+result.failed+' interdite.'
+        : result.completed ? result.completed+' actions autorisées depuis le départ.'+(result.active.length?' États atteints : '+result.active.join(', ')+'.':'') : 'Aucune action à vérifier.';
+    }catch(error){q('proofReport').textContent=error.message;}
+  },
+  clearProof(){proof=[];q('proofReport').textContent='';scheduleDraft();}
+});
+ctl.onAction=action=>{
+  if(recording&&proof.length<500)proof.push(structuredClone(action));
+};
+mechanismEditor.refresh();
+
+function decorateTemplate(cubes,kind){
+  const labels={
+    sequence:['A','B','VERROU'], rails:['NAVETTE','AIGUILLE','BARRAGE'], mirrors:['SOURCE','MIROIR','CAPTEUR','VERROU'],
+    contact:['CONTACT','BORNE','VERROU'], connectors:['PRISE','CONNECTEUR'], hinge:['PIVOT','BRAS','BARRAGE'],
+    fresco:['TUILE','TUILE','TUILE','TUILE'], window:['FENÊTRE','VOLET','TRACE'],
+    double:['SOURCE','MIROIR','RELAIS','CAPTEUR','VERROU'], switched:['COMMANDE','SOURCE','CAPTEUR','VERROU']
+  };
+  const colors=['#6249a0','#225e93','#34705b','#824843','#633138'];
+  const tile=document.createElement('canvas');
+  tile.width=tile.height=256;
+  const ctx=tile.getContext('2d');
+  cubes.forEach((cube,i)=>{
+    ctx.fillStyle=colors[i];
+    ctx.fillRect(0,0,256,256);
+    ctx.strokeStyle='#d9edec';
+    ctx.lineWidth=6;
+    ctx.strokeRect(14,14,228,228);
+    ctx.fillStyle='#ffffff';
+    ctx.font='bold 29px sans-serif';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillText(labels[kind][i],128,128);
+    cube.faces.fill(tile.toDataURL('image/png'));
+  });
+  if(kind!=='fresco')return;
+  const artwork=document.createElement('canvas');
+  artwork.width=artwork.height=512;
+  const paint=artwork.getContext('2d');
+  paint.fillStyle='#18243a';
+  paint.fillRect(0,0,512,512);
+  paint.strokeStyle='#e3ff9c';
+  paint.lineWidth=24;
+  paint.beginPath();
+  paint.ellipse(256,256,215,122,Math.PI/5,0,Math.PI*2);
+  paint.stroke();
+  paint.fillStyle='#67dbed';
+  paint.beginPath();
+  paint.arc(256,256,82,0,Math.PI*2);
+  paint.fill();
+  for(const [i,cube] of cubes.entries()){
+    ctx.clearRect(0,0,256,256);
+    ctx.drawImage(artwork,(i%2)*256,i<2?256:0,256,256,0,0,256,256);
+    cube.faces[4]=tile.toDataURL('image/png');
+  }
+}

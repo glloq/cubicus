@@ -66,3 +66,7 @@ Le workflow Pages passe par une validation réutilisable incluant les tests Chro
 ## Lecteur HTML autonome
 
 `npm run build:embed` assemble les modules du Player et Three.js dans un gabarit qui contient également les styles. Le Studio y insère le même document public que pour un export `.puzzle`. L’ouverture autonome lit le document JSON intégré et emprunte le chargement normal du Player. La publication Pages génère le gabarit avec les dépendances épinglées.
+
+## Mécanismes
+
+Le document public `.puzzle` V1 accepte une extension `mechanisms.version: 1` et une consigne publique facultative. Le Studio retire les champs privés et remplace les identifiants de cubes et les noms d’états lors de l’export, en conservant leurs relations. Le Player calcule les états, les verrouillages et les connexions par face à partir du même modèle utilisé pour rejouer les parcours privés. La preuve enregistrée reste en dehors du document public et du bundle autonome.
