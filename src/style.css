@@ -15,3 +15,5 @@
 .player #controls .spacingtools{display:flex;align-items:center;gap:12px}.player #controls .spacingtools>label{flex:1;display:flex;gap:10px;align-items:center}.player #controls .spacingtools details{flex:1}
 .player #hint:empty{display:none}.player #status:empty{display:none}
 @media(max-width:650px){.player #controls{max-height:48%;bottom:5px}.viewtools{max-width:180px}.player #controls .selectiontools{gap:2px}.player #controls button{padding:5px}.player #controls .spacingtools{display:block}}
+
+[hidden]{display:none!important}
