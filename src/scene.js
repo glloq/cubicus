@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {faceOpacity} from './model.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 const AXES=['X','Y','Z'], COLORS=[0xee6666,0x66dd88,0x6699ff];
 export class SceneView {
@@ -35,7 +36,7 @@ export class SceneView {
  texture(src){if(!src)return null;if(!this.cache.has(src)){const t=this.loader.load(src,()=>this.render());t.colorSpace=T.SRGBColorSpace;this.cache.set(src,t)}return this.cache.get(src)}
  update(cubes,selected=[],spacing=[.12,.12,.12],animate=false){this.animationToken=(this.animationToken||0)+1;const token=this.animationToken;const old=new Map(this.meshes.map(m=>[m.userData.id,m]));const center=[0,1,2].map(i=>cubes.length?(Math.min(...cubes.map(c=>c.p[i]))+Math.max(...cubes.map(c=>c.p[i])))/2:0);const transitions=[];this.meshes=[];
   for(const c of cubes){let m=old.get(c.id);if(m){old.delete(c.id)}else{m=new T.Mesh(this.geo,[]);this.group.add(m);m.userData.id=c.id;m.castShadow=true;m.receiveShadow=true;const line=new T.LineSegments(this.edges,new T.LineBasicMaterial({color:0xffcb70}));m.add(line)}
-   const key=c.faces.join('|');if(m.userData.faceKey!==key){m.material.forEach(x=>x.dispose());m.material=c.faces.map(f=>new T.MeshStandardMaterial({color:f?0xffffff:0x61798c,map:this.texture(f),roughness:.85}));m.userData.faceKey=key}
+   const opacity=faceOpacity(c.opacity),key=c.faces.join('|')+'|'+opacity.join(',');if(m.userData.faceKey!==key){m.material.forEach(x=>x.dispose());m.material=c.faces.map((f,i)=>new T.MeshStandardMaterial({color:f?0xffffff:0x61798c,map:this.texture(f),roughness:.85,transparent:opacity[i]<1,opacity:opacity[i],depthWrite:opacity[i]===1,visible:opacity[i]>0,side:T.FrontSide}));m.userData.faceKey=key;m.castShadow=opacity.every(v=>v===1)}
    const p=new T.Vector3(...c.p.map((v,i)=>(v-center[i])*(1+spacing[i]))),r=c.r,q=new T.Quaternion().setFromRotationMatrix(new T.Matrix4().set(r[0],r[1],r[2],0,r[3],r[4],r[5],0,r[6],r[7],r[8],0,0,0,0,1));if(animate&&m.userData.placed)transitions.push({m,p,q,from:m.position.clone(),rot:m.quaternion.clone()});else{m.position.copy(p);m.quaternion.copy(q)}m.userData.placed=true;m.children[0].visible=selected.includes(c.id)&&this.mode!=='select';this.meshes.push(m)}
   for(const m of old.values()){this.group.remove(m);m.material.forEach(x=>x.dispose());m.children[0].material.dispose()}
   const used=new Set(cubes.flatMap(c=>c.faces).filter(Boolean));for(const [k,t] of this.cache)if(!used.has(k)){t.dispose();this.cache.delete(k)}
