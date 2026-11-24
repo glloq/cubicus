@@ -14,6 +14,6 @@ const q=id=>document.getElementById(id);let initial=grid(2,2,1),ctl,openingView;
   view.fit(initial);
   applySceneState(ctl,openingView);
 }
-function open(data){initial=validate(data);openingView=initialView(data.view);ctl.history.clear();ctl.replace(initial);ctl.configure(data.controls);resetView();q('status').textContent=''}q('load').onchange=async e=>{try{open(JSON.parse(await e.target.files[0].text()))}catch(e){q('status').textContent=e.message}};q('reset').onclick=()=>{ctl.history.clear();ctl.replace(initial);resetView()};try{const id=new URLSearchParams(location.search).get('test');if(id){const p=await getPuzzle(id);if(!p)throw Error('Test introuvable');open(p)}else open(exportPuzzle(demo(4)))}catch(e){q('status').textContent=e.message}
+function open(data){initial=validate(data);openingView=initialView(data.view);ctl.history.clear();ctl.replace(initial);ctl.configure(data.controls);q('reset').hidden=!ctl.rules.history.reset;resetView();q('status').textContent=''}q('load').onchange=async e=>{try{open(JSON.parse(await e.target.files[0].text()))}catch(e){q('status').textContent=e.message}};q('reset').onclick=()=>{if(!ctl.rules.history.reset)return;ctl.history.clear();ctl.replace(initial);resetView()};try{const id=new URLSearchParams(location.search).get('test');if(id){const p=await getPuzzle(id);if(!p)throw Error('Test introuvable');open(p)}else open(exportPuzzle(demo(4)))}catch(e){q('status').textContent=e.message}
 
 q('demo').onchange=e=>open(exportPuzzle(demo(+e.target.value)));

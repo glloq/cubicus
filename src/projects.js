@@ -1,6 +1,7 @@
+import {controlRules} from './control-rules.js';
 import {initialView} from './scene-state.js';
 import { validateProjectCubes } from './layers.js';
-import { publicControls, validate } from './model.js';
+import { validate } from './model.js';
 
 const HISTORY_LIMIT = 3;
 
@@ -30,7 +31,7 @@ export function readPrivateProject(raw) {
     view: raw.view ?? null,
     publicView: initialView(raw.publicView),
     library: Array.isArray(raw.library) ? raw.library.map(cube => parseCubes([cube])[0]) : [],
-    controls: publicControls(raw.controls)
+    controls: controlRules(raw.controls)
   };
 }
 

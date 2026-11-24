@@ -1,3 +1,5 @@
+import {controlRules} from './control-rules.js';
+import {bindConstraints,bindControlEditor} from './control-editor.js';
 import {offsetGroup} from './assembly.js';
 import {bindResources} from './studio-resources.js';
 import { applySceneState, captureSceneState, initialView } from './scene-state.js';
@@ -5,13 +7,13 @@ import { bindSilhouette } from './studio-silhouette.js';
 import { faceMaterials, validateMirrors } from './materials.js';
 import { bindImageImport } from './image-import.js';
 import { bindReferences } from './references.js';
-import { mixPuzzle } from './mix.js';
+import { mixPuzzle, seededRandom } from './mix.js';
 import { preparePublicPuzzle } from './public-authoring.js';
 import { bindVolumeEditor } from './studio-volumes.js';
 import { bindFaceWorkspace } from './face-workspace.js';
 import { bindProjects } from './studio-projects.js';
-import {drawStamp} from './stamps.js';import {privateLayers,composeLayers} from './layers.js';import {SceneView} from './scene.js';import {Controller} from './controller.js';import {cube,grid,publicControls,CONTROL_KEYS,faceOpacity,alphaFaces} from './model.js';import {demo} from './demo.js';import {overlayLayers} from './overlay.js';import {bakeProjection} from './anamorph.js';import {muralTiles} from './mural.js';import {download,putPuzzle} from './storage.js';
-const q=id=>document.getElementById(id),canvas=q('paint'),ctx=canvas.getContext('2d');let rules=publicControls(),library=[],ctl,reference=null,referenceView=null,publicView=null,clipboard=null,paintVersion=0,faceReady=true,layerIndex=0,layerJob=0;const view=new SceneView(q('view'),(id,face)=>{q('face').value=face;layerIndex=0;ctl.select(id)});ctl=new Controller(view,q('controls'),grid(2,2,1),()=>{loadFace();scheduleDraft()});function selected(){return ctl.cubes.find(c=>c.id===ctl.selected)}function status(s){q('status').textContent=s}function loadFace(){volumeEditor.refresh();refreshCubePicker();refreshLayers();refreshMaterial();faceWorkspace.reset();faceReady=false;refreshNet();const version=++paintVersion;ctx.clearRect(0,0,512,512);if(!layerStack().length&&!alphaFaces(selected()?.alphaFaces)[+q('face').value]&&!faceMaterials(selected()?.materials)[+q('face').value].blend){ctx.fillStyle='#304050';ctx.fillRect(0,0,512,512)}const f=activeLayer()?.image||(!layerStack().length?selected()?.faces[+q('face').value]:null);if(f){const im=new Image();im.onload=()=>{if(version===paintVersion){ctx.drawImage(im,0,0,512,512);faceReady=true}};im.onerror=()=>{if(version===paintVersion){faceReady=true;status('Texture illisible')}};im.src=f}else faceReady=true}function commit(){const c=selected();if(!c)return;const f=+q('face').value,l=activeLayer();if(l){l.image=canvas.toDataURL('image/png');recompose(c,f)}else{c.faces[f]=canvas.toDataURL('image/png');ctl.draw();refreshNet();scheduleDraft()}}q('face').onchange=()=>{layerIndex=0;loadFace()};const faceWorkspace = bindFaceWorkspace(canvas, {
+import {drawStamp} from './stamps.js';import {privateLayers,composeLayers} from './layers.js';import {SceneView} from './scene.js';import {Controller} from './controller.js';import {cube,grid,faceOpacity,alphaFaces} from './model.js';import {demo} from './demo.js';import {overlayLayers} from './overlay.js';import {bakeProjection} from './anamorph.js';import {muralTiles} from './mural.js';import {download,putPuzzle} from './storage.js';
+const q=id=>document.getElementById(id),canvas=q('paint'),ctx=canvas.getContext('2d');let rules=controlRules(),library=[],ctl,reference=null,referenceView=null,publicView=null,clipboard=null,paintVersion=0,faceReady=true,layerIndex=0,layerJob=0;const view=new SceneView(q('view'),(id,face)=>{q('face').value=face;layerIndex=0;ctl.select(id)});ctl=new Controller(view,q('controls'),grid(2,2,1),()=>{loadFace();refreshControlsEditor();scheduleDraft()});function selected(){return ctl.cubes.find(c=>c.id===ctl.selected)}function status(s){q('status').textContent=s}function loadFace(){volumeEditor.refresh();refreshCubePicker();refreshLayers();refreshMaterial();faceWorkspace.reset();faceReady=false;refreshNet();const version=++paintVersion;ctx.clearRect(0,0,512,512);if(!layerStack().length&&!alphaFaces(selected()?.alphaFaces)[+q('face').value]&&!faceMaterials(selected()?.materials)[+q('face').value].blend){ctx.fillStyle='#304050';ctx.fillRect(0,0,512,512)}const f=activeLayer()?.image||(!layerStack().length?selected()?.faces[+q('face').value]:null);if(f){const im=new Image();im.onload=()=>{if(version===paintVersion){ctx.drawImage(im,0,0,512,512);faceReady=true}};im.onerror=()=>{if(version===paintVersion){faceReady=true;status('Texture illisible')}};im.src=f}else faceReady=true}function commit(){const c=selected();if(!c)return;const f=+q('face').value,l=activeLayer();if(l){l.image=canvas.toDataURL('image/png');recompose(c,f)}else{c.faces[f]=canvas.toDataURL('image/png');ctl.draw();refreshNet();scheduleDraft()}}q('face').onchange=()=>{layerIndex=0;loadFace()};const faceWorkspace = bindFaceWorkspace(canvas, {
   checkpoint: () => ctl.checkpoint(),
   commit,
   canDraw: () => Boolean(selected()) && faceReady && !activeLayer()?.locked,
@@ -45,6 +47,8 @@ q('clear').onclick=()=>{if(!selected()||!faceReady||activeLayer()?.locked)return
     positions: q('shufflePos').checked,
     rotations: q('shuffleRot').checked,
     steps: q('mixSteps').value,
+    ids:q('mixSelected').checked?ctl.group().map(cube=>cube.id):undefined,
+    random:q('mixSeed').value ? seededRandom(q('mixSeed').value) : Math.random,
     axes: [...q('mixAxes').querySelectorAll('input:checked')].map(input => input.value).join('')
   });
   if (!steps) {
@@ -122,8 +126,19 @@ refreshNet();
 
 ctl.selected=ctl.cubes[0].id;ctl.draw();loadFace();view.fit(ctl.cubes);
 
-function renderRules(){const host=q('publicControls');host.replaceChildren();const names={rotate:'Rotation',move:'Déplacement',groups:'Lignes et couches',spacing:'Écartement',light:'Lumière',shadows:'Ombres',observe:'Orienter la caméra',zoom:'Zoom',projection:'Changer de projection'};for(const key of CONTROL_KEYS){const label=document.createElement('label'),box=document.createElement('input');box.type='checkbox';box.checked=rules[key];box.onchange=()=>{rules[key]=box.checked;scheduleDraft()};label.append(box,' '+names[key]);host.append(label)}}
-renderRules();
+const controlEditor = bindControlEditor(q('publicControls'),{
+  read:()=>rules, write:next=>{rules=next;scheduleDraft();}, cubes:()=>ctl.cubes, opening:()=>publicView,status
+});
+const constraintsEditor = bindConstraints(q('cubeConstraints'),{
+  selected:()=>ctl.group(),checkpoint:()=>ctl.checkpoint(),changed:()=>ctl.changed(),status
+});
+function refreshControlsEditor(){
+  controlEditor.diagnostic();
+  constraintsEditor.refresh();
+}
+function renderRules(){controlEditor.render();}
+ctl.onSelectionChange=()=>constraintsEditor.refresh();
+refreshControlsEditor();
 
 q('muralCreate').onclick=async()=>{const file=q('mural').files[0];if(!file){status('Choisir une image complète');return}const assembly = ctl.cubes;let image;try{image=await createImageBitmap(file);if (ctl.cubes !== assembly) return;const c=muralTiles(image,+q('muralX').value,+q('muralY').value,{
   plane:q('muralPlane').value, angle:+q('muralAngle').value, fill:q('muralFill').checked,
@@ -280,7 +295,7 @@ q('auditProject').onclick = async () => {
     lines.push('Export : ' + (new Blob([JSON.stringify(puzzle)]).size / 1024).toFixed(1) + ' Kio');
     lines.push('Dernier rendu : ' + scene.render.triangles + ' triangles, ' + scene.render.calls + ' appels de dessin');
     lines.push('Scène : ' + view.meshes.length + ' maillages de cubes, ' + uniqueMaterials.size + ' matériaux, ' + scene.memory.textures + ' textures GPU');
-    if (!rules.rotate && !rules.move && !rules.spacing && !rules.light) lines.push('Observation seule');
+    if (!rules.rotation.individual && !rules.rotation.collective && !rules.rotation.simultaneous && !rules.movement.swap && !rules.movement.emptySlots && !rules.spacing.global && !rules.spacing.independentAxes && !rules.lighting.direction) lines.push('Observation seule');
     if (!comparison) lines.push('Attention : aucune configuration de référence');
     if (comparison && comparison.length !== poses.size) lines.push('Attention : nombre de cubes différent de la référence');
     if (comparison?.length === poses.size && comparison.every(cube => {

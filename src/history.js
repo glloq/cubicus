@@ -6,6 +6,9 @@ export class History {
     this.limit = limit;
   }
 
+  get canBack() { return this.#past.length > 0; }
+  get canForward() { return this.#future.length > 0; }
+
   clear() {
     this.#past = [];
     this.#future = [];

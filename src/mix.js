@@ -1,24 +1,71 @@
-import {mul, publicControls, quarter} from './model.js';
+import {controlRules} from './control-rules.js';
+import {actionState, applyChanges, previewAction, selection} from './control-actions.js';
 
-// All generated steps are reversible through the Player's ordinary operations.
-export function mixPuzzle(cubes, controls, {positions = true, rotations = true, steps = 20, axes = 'XYZ', random = Math.random} = {}) {
-  const rules = publicControls(controls);
-  const rotateAxes = [...'XYZ'].filter(axis => axes.includes(axis));
-  const canSwap = Boolean(positions && rules.move && cubes.length >= 2);
-  const canRotate = Boolean(rotations && rules.rotate && rotateAxes.length && cubes.length);
-  if (!canSwap && !canRotate) return 0;
-  const count = Math.max(1, Math.min(200, Math.floor(Number(steps)) || 1));
-  const pick = length => Math.floor(random() * length);
-  for (let move = 0; move < count; move++) {
-    const first = pick(cubes.length);
-    const cube = cubes[first];
-    if (canSwap && (!canRotate || random() < .5)) {
-      const offset = 1 + pick(cubes.length - 1);
-      const other = cubes[(first + offset) % cubes.length];
-      [cube.p, other.p] = [other.p, cube.p];
-    } else {
-      cube.r = mul(quarter(rotateAxes[pick(rotateAxes.length)], random() < .5 ? -1 : 1), cube.r);
+export function seededRandom(seed) {
+  let value = 2166136261;
+  for (const character of seed) value = Math.imul(value ^ character.codePointAt(0), 16777619);
+  return () => {
+    value = (value + 0x6D2B79F5) | 0;
+    let result = Math.imul(value ^ value >>> 15,value | 1);
+    result ^= result + Math.imul(result ^ result >>> 7,result | 61);
+    return ((result ^ result >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+export function mixPuzzle(cubes, controls, {positions = true, rotations = true, steps = 20, axes = 'XYZ', ids, random = Math.random} = {}) {
+  const rules = controlRules(controls);
+  const rotateAxes = rules.rotation.axes.filter(axis => axes.includes(axis));
+  const count = Math.max(1,Math.min(200,Math.floor(Number(steps)) || 1));
+  const allowed = ids ? new Set(ids) : null;
+  const pool = cubes.filter(cube => !allowed || allowed.has(cube.id));
+  const pick = length => Math.floor(random()*length);
+  let executed = 0;
+  for (; executed < count; executed++) {
+    const state = actionState(cubes,rules);
+    const find = action => previewAction(state,action);
+    const first = pick(pool.length);
+    const firstAxis = pick(rotateAxes.length);
+    const sign = random() < .5 ? -1 : 1;
+    const swapFirst = positions && (!rotations || random() < .5);
+    function tryRotations() {
+      if (!rotations || !rotateAxes.length) return null;
+      for (let i = 0; i < pool.length; i++) {
+        const id = pool[(first+i)%pool.length].id;
+        for (let j = 0; j < rotateAxes.length; j++) {
+          const axis = rotateAxes[(firstAxis+j)%rotateAxes.length];
+          if (rules.selection.individual) {
+            const changes = find({type:'rotate',ids:[id],axis,sign,scope:'cube'});
+            if (changes) return changes;
+          }
+          for (const scope of ['definedGroups','line','layer','all','multiple']) {
+            if (!rules.selection[scope]) continue;
+            for (const selectionAxis of ['X','Y','Z']) {
+              const members = selection(state,{id,scope,axis:selectionAxis,multiple:pool.map(cube=>cube.id)});
+              if (members.length < 2 || members.some(cube=>allowed&&!allowed.has(cube.id))) continue;
+              const group = members.map(cube=>cube.id);
+              for (const type of ['collective','rotate']) for (const direction of [sign,-sign]) {
+                const changes = find({type,ids:group,axis,sign:direction,scope});
+                if (changes) return changes;
+              }
+            }
+          }
+        }
+      }
+      return null;
     }
+    function trySwaps() {
+      if (!positions || !rules.movement.swap || !rules.selection.individual) return null;
+      for (let i = 0; i < pool.length; i++) for (let offset = 1; offset < pool.length; offset++) {
+        const a = (first+i)%pool.length;
+        const b = (a+offset)%pool.length;
+        const changes = find({type:'swap',ids:[pool[a].id,pool[b].id]});
+        if (changes) return changes;
+      }
+      return null;
+    }
+    const changes = swapFirst ? trySwaps() ?? tryRotations() : tryRotations() ?? trySwaps();
+    if (!changes) break;
+    applyChanges(state,changes);
   }
-  return count;
+  return executed;
 }
