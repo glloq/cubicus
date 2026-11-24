@@ -1,4 +1,4 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {grid,identity,quarter,mul,exportPuzzle,validate,shuffle,moveTo,rotateGroup} from '../src/model.js';
+import test from 'node:test';import assert from 'node:assert/strict';import {grid,identity,quarter,mul,exportPuzzle,validate,shuffle,moveTo,rotateGroup,publicControls} from '../src/model.js';
 test('arbitrary grid dimensions',()=>{for(const [x,y,z] of [[1,1,1],[2,2,1],[3,3,2],[3,3,3]])assert.equal(grid(x,y,z).length,x*y*z)});
 test('quarter turns close exactly',()=>{for(const a of ['X','Y','Z']){let m=identity();for(let i=0;i<4;i++)m=mul(quarter(a),m);assert.deepEqual(m,identity());assert.deepEqual(mul(quarter(a,-1),quarter(a)),identity())}});
 test('24 proper cube rotations',()=>{const seen=new Map([[identity().join(),identity()]]);for(const m of seen.values())for(const a of ['X','Y','Z']){const n=mul(quarter(a),m);seen.set(n.join(),n)}assert.equal(seen.size,24)});
@@ -9,3 +9,5 @@ test('invalid rotation rejected',()=>{const p=exportPuzzle(grid(1,1,1));p.cubes[
 test('move rejects occupied slots without mutation',()=>{const c=grid(2,1,1);assert.equal(moveTo(c,c[0].id,[1,0,0]),false);assert.deepEqual(c[0].p,[0,0,0]);assert.equal(moveTo(c,c[0].id,[0,1,0]),true)});
 test('rigid layer rotation preserves grid and four turns restore poses',()=>{const c=grid(3,3,2),ids=c.filter(x=>x.p[2]===0).map(x=>x.id),before=structuredClone(c);for(let i=0;i<4;i++)assert.equal(rotateGroup(c,ids,'Z',1),true);assert.deepEqual(c,before)});
 test('rigid rotation rejects fractional slots and collisions atomically',()=>{const c=grid(2,1,1),before=structuredClone(c);assert.equal(rotateGroup(c,c.map(x=>x.id),'Z',1),false);assert.deepEqual(c,before);const d=grid(3,2,1),ids=d.filter(x=>x.p[1]===0).map(x=>x.id),original=structuredClone(d);assert.equal(rotateGroup(d,ids,'Z',1),false);assert.deepEqual(d,original)});
+
+test('public control allowlist excludes solution metadata',()=>{const p=exportPuzzle(grid(1,1,1),{rotate:false,answer:'secret',target:[1,2,3]});assert.equal(p.controls.rotate,false);assert.equal(p.controls.move,true);assert.equal('answer' in p.controls,false);assert.equal('target' in p.controls,false);assert.equal(publicControls(null).rotate,true)});
