@@ -29,3 +29,49 @@
 .studio-tabs{display:flex;gap:6px;padding:8px 12px;background:#1b242e;border-bottom:1px solid #384856}.studio-tabs .active{background:#386d79;border-color:#82b5c5}.studio-layout{height:calc(100dvh - 132px);grid-template-columns:250px minmax(0,1fr)}.studio-layout[data-stage=faces]{grid-template-columns:220px minmax(0,1fr) 300px}.studio-layout:not([data-stage=faces]) .face-panel{display:none}.studio-layout[data-stage=faces]>aside:first-child{padding:8px}.studio-status{position:fixed;bottom:0;left:0;right:0;margin:0;padding:6px 14px;background:#202832;z-index:4;pointer-events:none;color:#c7dce6}.studio-status:empty{display:none}@media(max-width:800px){.studio-layout,.studio-layout[data-stage=faces]{height:auto;display:flex}.studio-tabs{flex-wrap:wrap}.studio-layout #view{order:-1;height:60vh}.studio-status{position:static}}
 
 #auditResult{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 system-ui;color:#bcd3dd}#openFaces{display:grid;grid-template-columns:1fr 1fr;gap:3px}.face-panel details{border-top:1px solid #394957;padding-top:7px}
+
+#localProjects { position: relative; margin: 0; }
+#localProjects[open] {
+  padding: 8px;
+  border-radius: 6px;
+  background: #293543;
+}
+.face-view-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.face-view-tools input[type=range] { width: 85px; }
+#paintViewport { max-height: 420px; overflow: auto; }
+#paintSurface { position: relative; }
+#paintSurface #paint { margin: 0; }
+#paintSurface.with-grid::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  background-image: linear-gradient(to right, #fff5 1px, transparent 1px), linear-gradient(to bottom, #fff5 1px, transparent 1px);
+  background-size: var(--grid-spacing) var(--grid-spacing);
+}
+#faceWorkspace:fullscreen { padding: 16px; background: #202832; }
+#faceWorkspace:fullscreen #paintViewport { max-width: 75vh; max-height: calc(100vh - 115px); margin-inline: auto; }
+#volumeCells, #volumeOpenings { display: grid; gap: 2px; }
+#volumeOpenings { grid-template-columns: repeat(3, 1fr); }
+#volumeCells button { margin: 0; padding: 0; aspect-ratio: 1; border-radius: 2px; }
+#volumeCells button[aria-pressed=true] { background: #5b9ba7; border-color: #91c2c8; }
+#playtest { width: min(1100px, 96vw); height: 91dvh; padding: 8px; color: inherit; background: #202832; border: 1px solid #526477; }
+#playtest::backdrop { background: #10151bd9; }
+#playtestFrame { width: 100%; height: calc(100% - 42px); border: 0; margin-top: 6px; }
+#imageImport { max-height: 96dvh; color: inherit; background: #202832; border: 1px solid #526477; }
+#imageImport::backdrop { background: #10151bd9; }
+#imagePreview { display: block; width: min(420px, 75vw, 43vh); touch-action: none; background: repeating-conic-gradient(#3b4856 0% 25%, #26333f 0% 50%) 0 0 / 20px 20px; }
+#silhouettePreview { display: block; width: min(100%, 150px); image-rendering: pixelated; }
+
+.player #controls[data-shadow-only] .lighttools { display: block; }
+
+#controlDiagnostic {
+  display: block;
+  margin-top: 8px;
+  white-space: pre-line;
+  font-size: 12px;
+  line-height: 1.5;
+}
+#cubeConstraints textarea { width: 100%; min-height: 4rem; }
+#lightPosition { display: flex; flex-wrap: wrap; gap: 4px; }
+#view > canvas:focus-visible { outline: 2px solid #87cbd5; outline-offset: -2px; }

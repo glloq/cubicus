@@ -4,12 +4,14 @@ import * as T from 'three';
  * Each texel samples the source at its projected screen coordinate.
  * Authoring only; neither camera nor source image is serialized in a puzzle.
  */
-export function bakeProjection(image,view,cubes,{resolution=256,preserve=false}={}){
+export function bakeProjection(image,view,cubes,{resolution=256,preserve=false,ids=null,face=null,asLayer=false}={}){
  if(![128,256,512].includes(resolution))throw Error('Résolution invalide');
- if(cubes.length>64)throw Error('Projection limitée à 64 cubes');
+ const targets=cubes.filter(c=>!ids||ids.includes(c.id));
+ if(!targets.length)throw Error('Sélection de projection vide');
+ if(targets.length>64)throw Error('Projection limitée à 64 cubes');
  if(view.animating)throw Error('Attendre la fin de la rotation');
  const camera=view.camera;view.scene.updateMatrixWorld(true);camera.updateMatrixWorld(true);
- const meshes=view.meshes,byId=new Map(meshes.map(m=>[m.userData.id,m]));
+ const meshes=view.meshes.filter(m=>targets.some(c=>c.id===m.userData.id)),byId=new Map(meshes.map(m=>[m.userData.id,m]));
  const bounds=new T.Box2();const v=new T.Vector3();
  for(const m of meshes)for(const x of [-.5,.5])for(const y of [-.5,.5])for(const z of [-.5,.5]){
   v.set(x,y,z).applyMatrix4(m.matrixWorld).project(camera);
@@ -32,7 +34,9 @@ export function bakeProjection(image,view,cubes,{resolution=256,preserve=false}=
  const normal=new T.Vector3(),toCamera=new T.Vector3(),center=new T.Vector3();
  for(const c of result){const m=byId.get(c.id);if(!m)continue;
   for(let f=0;f<6;f++){
-   if(preserve&&c.faces[f])continue;
+   if(face!==null&&face!==f)continue;
+   if(preserve&&!asLayer&&c.faces[f])continue;
+   if(asLayer&&(c.layers?.[f]?.length??0)>=16)continue;
    center.set(...facePoint(f,.5,.5)).applyMatrix4(m.matrixWorld);
    normal.set(...normals[f]).transformDirection(m.matrixWorld);
    if(camera.isOrthographicCamera)camera.getWorldDirection(toCamera).negate();else toCamera.copy(camera.position).sub(center).normalize();
@@ -44,7 +48,16 @@ export function bakeProjection(image,view,cubes,{resolution=256,preserve=false}=
     const i=(y*resolution+x)*4,j=(sy*1024+sx)*4;
     out.data[i]=pixels[j];out.data[i+1]=pixels[j+1];out.data[i+2]=pixels[j+2];out.data[i+3]=255;
    }
-   ctx.putImageData(out,0,0);c.faces[f]=tile.toDataURL('image/png');if(c.layers)c.layers[f]=[];count++;
+   ctx.putImageData(out,0,0);
+   const projection = tile.toDataURL('image/png');
+   if (asLayer) {
+    c.layers ??= Array.from({length:6}, () => []);
+    c.layers[f] ??= [];
+    if (!c.layers[f].length && c.faces[f]) c.layers[f].push({name:'Fond',image:c.faces[f],visible:true,opacity:1});
+    c.layers[f].push({name:'Projection',image:projection,visible:true,opacity:1});
+   } else if (c.layers) c.layers[f]=[];
+   c.faces[f] = projection;
+   count++;
   }
  }
  return {cubes:result,count};

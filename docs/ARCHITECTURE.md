@@ -48,3 +48,17 @@ Each face optionally has up to 16 editable raster layers, with visibility, opaci
 
 ## V0.9 Studio authoring utilities
 Eight procedural raster stamps support size, fill, color, width, quarter-turn orientation and optional 32px coordinate snapping. Shuffle positions and rotations can be enabled independently. Project diagnostics check the public schema, size, face count and equality to the reference pose; they do not prove solvability or confidentiality. Open-face controls use existing face opacity to remove walls visually, not actual thick-walled or perforated geometry. Cube picker allows selecting invisible cubes. Browser tests exercise stamps, audit and open/close presets. Real perforated geometry remains future work.
+
+## Branche Studio V1
+
+Les notes V0.x ci-dessus décrivent les versions historiques. La branche V1 épingle Three.js et Playwright via npm. Le moteur partagé s’appuie sur `model.js`, `controller.js`, `scene.js`, `volume-mesh.js` et `scene-state.js`. Les fragments personnalisés disposent d’un seul maillage fusionné par matériau. Les cubes unis partagent un matériau, avec sélection par normale de la face locale.
+
+Le Studio orchestre un éditeur graphique, un éditeur de volumes, une bibliothèque IndexedDB, un catalogue de projets et des références privées. Le Player charge uniquement son modèle public et la vue de démarrage explicitement exportée. Il applique les transformations géométriques sans validation de réponse et sans lecture des références privées. Les deux vues utilisent Three.js. Le format privé V2 migre les projets V1 et le brouillon IndexedDB historique.
+
+Le workflow Pages passe par une validation réutilisable incluant les tests Chromium. L’artefact assemble les trois pages, les modules du projet et les fichiers nécessaires de Three.js. Les chemins restent relatifs au répertoire de publication.
+
+## Contrôles adaptatifs
+
+`control-rules.js` normalise le schéma. `control-actions.js` construit l’index par identité, position et groupe, puis calcule capacités et transformations. Une prévisualisation renvoie l’ensemble des modifications admissibles avant écriture. Le contrôleur et le mélangeur utilisent ces mêmes validations. Dans le Studio, le mode création utilise un index de manipulation sans verrouillage de jeu, et le Player intégré reçoit une copie avec les contraintes publiques.
+
+`control-editor.js` présente les profils, le diagnostic et les contraintes de la sélection. Le format de l’énigme reste V1 et son sous-schéma de commandes passe à V2. [Guide et migration](PLAYER_CONTROLS.md)
