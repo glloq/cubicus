@@ -13,3 +13,5 @@ test('rigid rotation rejects fractional slots and collisions atomically',()=>{co
 test('public control allowlist excludes solution metadata',()=>{const p=exportPuzzle(grid(1,1,1),{rotate:false,answer:'secret',target:[1,2,3]});assert.equal(p.controls.rotate,false);assert.equal(p.controls.move,true);assert.equal('answer' in p.controls,false);assert.equal('target' in p.controls,false);assert.equal(publicControls(null).rotate,true)});
 
 test('optical material export is sanitized',()=>{const c=grid(1,1,1);c[0].opacity=[-1,.5,2,0,1,1];c[0].alphaFaces=[true,false,false,false,false,false];const p=exportPuzzle(c);assert.deepEqual(p.cubes[0].opacity,[0,.5,1,0,1,1]);assert.deepEqual(validate(p)[0].alphaFaces,[true,false,false,false,false,false])});
+
+test('shuffle can independently preserve positions or rotations',()=>{const c=grid(3,2,1),p=c.map(x=>[...x.p]),r=c.map(x=>[...x.r]);shuffle(c,{positions:false,rotations:true});assert.deepEqual(c.map(x=>x.p),p);const after=c.map(x=>[...x.r]);shuffle(c,{positions:true,rotations:false});assert.deepEqual(c.map(x=>x.r),after);const before=structuredClone(c);shuffle(c,{positions:false,rotations:false});assert.deepEqual(c,before)});
