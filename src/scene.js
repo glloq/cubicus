@@ -10,10 +10,17 @@ function hitFace(hit) {
  const {x, y, z} = hit.face.normal;
  return x ? (x > 0 ? 0 : 1) : y ? (y > 0 ? 2 : 3) : (z > 0 ? 4 : 5);
 }
+function poseQuaternion(r) {
+ return new T.Quaternion().setFromRotationMatrix(new T.Matrix4().set(
+  r[0],r[1],r[2],0,r[3],r[4],r[5],0,r[6],r[7],r[8],0,0,0,0,1));
+}
 export class SceneView {
  constructor(host,onSelect){
   this.mirrors=new SceneMirrors();this.host=host;this.onSelect=onSelect;this.mode='rotate';this.scene=new T.Scene();this.scene.background=new T.Color(0x151c25);
-  this.group=new T.Group();this.gizmo=new T.Group();this.scene.add(this.group,this.gizmo);this.handles=[];this.slots=[];this.slotGroup=new T.Group();this.scene.add(this.slotGroup);this.meshes=[];this.cache=new Map();this.selectedIds=[];this.gapDrag=null;
+  this.group=new T.Group();this.gizmo=new T.Group();
+  this.transformPreview=new T.Group();
+  this.previewMaterial=new T.LineBasicMaterial({color:0x80ffbd,transparent:true,opacity:.65,depthTest:false});
+  this.scene.add(this.group,this.gizmo,this.transformPreview);this.handles=[];this.slots=[];this.slotGroup=new T.Group();this.scene.add(this.slotGroup);this.meshes=[];this.cache=new Map();this.selectedIds=[];this.gapDrag=null;
   this.camera=new T.PerspectiveCamera(45,1,.05,1000);this.camera.position.set(5,4,7);
   this.renderer=new T.WebGLRenderer({antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.domElement.setAttribute('aria-label','Scène 3D');host.append(this.renderer.domElement);
   this.renderer.shadowMap.enabled=false;this.renderer.shadowMap.type=T.PCFSoftShadowMap;
@@ -74,16 +81,44 @@ export class SceneView {
  initInput(){const el=this.renderer.domElement;let drag=null,hover=null;const clear=()=>{if(hover){hover.material.color.setHex(0xffcb70);hover=null}this.dropPreview.visible=false;this.clearSlots();this.orbit.enabled=true;drag=null;this.render()};
   this.dropPreview=new T.LineSegments(this.edges,new T.LineBasicMaterial({color:0x80ffbd,depthTest:false}));this.dropPreview.visible=false;this.dropPreview.renderOrder=30;this.scene.add(this.dropPreview);
   el.addEventListener('pointerdown',e=>{if(e.button!==0||e.isPrimary===false||this.animating)return;this.pick(e);const handle=this.ray.intersectObjects(this.handles,false)[0];const hit=this.ray.intersectObjects(this.meshes,false)[0];drag={pointerId:e.pointerId,x:e.clientX,y:e.clientY,id:hit?.object.userData.id,handle:handle?.object.userData};if(drag.handle?.kind==='spacing'){const axis=drag.handle.axis,i=AXES.indexOf(axis),direction=i<0?new T.Vector3(1,1,1).normalize():new T.Vector3().setComponent(i,1);const origin=handle.object.position.clone(),a=origin.clone().project(this.camera),b=origin.clone().add(direction).project(this.camera),r=el.getBoundingClientRect();const dx=(b.x-a.x)*r.width/2,dy=-(b.y-a.y)*r.height/2;drag.gap={i,dx,dy,value:i<0?this.globalGapValue?.()??0:this.spacing[i],last:this.spacing[i]};this.onGapStart?.()}if(this.mode==='light'||handle||(hit&&this.mode==='move')){el.setPointerCapture(e.pointerId);this.orbit.enabled=false;if(hit&&this.mode==='move')this.showSlots(hit.object.userData.id)}});
-  el.addEventListener('pointermove',e=>{if(drag&&drag.pointerId!==e.pointerId)return;if(!drag){if(this.onHoverCube&&e.pointerType==='mouse'&&this.mode!=='select'&&!this.animating){this.pick(e);this.onHoverCube(this.ray.intersectObjects(this.meshes,false)[0]?.object.userData.id)}return}if(drag.gap){const g=drag.gap,den=g.dx*g.dx+g.dy*g.dy;if(den<=25){this.onGapDrag?.(g.i,g.value+(drag.y-e.clientY)/100);return}if(den>25){g.last=Math.max(0,Math.min(2,g.value+((e.clientX-drag.x)*g.dx+(e.clientY-drag.y)*g.dy)/den/Math.max(1,g.i<0?1:this.axisSpan(g.i))));this.onGapDrag?.(g.i,g.last)}return}if(this.mode==='light'){this.onLightDrag?.((e.clientX-drag.x)*.6,(drag.y-e.clientY)*.6,e.shiftKey);drag.x=e.clientX;drag.y=e.clientY;return}if(this.mode!=='move'||!drag.id)return;this.pick(e);const hit=this.ray.intersectObjects(this.meshes,false).find(h=>h.object.userData.id!==drag.id&&this.allowSwap?.(drag.id,h.object.userData.id)!==false);const slot=this.ray.intersectObjects(this.slots,false)[0];this.dropPreview.visible=!!(hit||slot);if(hit)this.dropPreview.position.copy(hit.object.position);else if(slot)this.dropPreview.position.copy(slot.object.position);this.render()});
+  el.addEventListener('pointermove',e=>{if(drag&&drag.pointerId!==e.pointerId)return;if(!drag){if(this.onHoverCube&&e.pointerType==='mouse'&&this.mode!=='select'&&!this.animating){this.pick(e);const handle=this.mode==='rotate'?this.ray.intersectObjects(this.handles,false)[0]:null;
+   const part=handle?.object.userData;
+   const id=handle?null:this.ray.intersectObjects(this.meshes,false)[0]?.object.userData.id;
+   if(this.lastHoveredHandle!==part){this.lastHoveredHandle=part;this.onHoverHandle?.(part);}
+   if(this.lastHoveredCube!==id){this.lastHoveredCube=id;this.onHoverCube(id);}}return}if(drag.gap){const g=drag.gap,den=g.dx*g.dx+g.dy*g.dy;if(den<=25){this.onGapDrag?.(g.i,g.value+(drag.y-e.clientY)/100);return}if(den>25){g.last=Math.max(0,Math.min(2,g.value+((e.clientX-drag.x)*g.dx+(e.clientY-drag.y)*g.dy)/den/Math.max(1,g.i<0?1:this.axisSpan(g.i))));this.onGapDrag?.(g.i,g.last)}return}if(this.mode==='light'){this.onLightDrag?.((e.clientX-drag.x)*.6,(drag.y-e.clientY)*.6,e.shiftKey);drag.x=e.clientX;drag.y=e.clientY;return}if(this.mode!=='move'||!drag.id)return;this.pick(e);const hit=this.ray.intersectObjects(this.meshes,false).find(h=>h.object.userData.id!==drag.id&&this.allowSwap?.(drag.id,h.object.userData.id)!==false);const slot=this.ray.intersectObjects(this.slots,false)[0];this.dropPreview.visible=!!(hit||slot);if(hit)this.dropPreview.position.copy(hit.object.position);else if(slot)this.dropPreview.position.copy(slot.object.position);this.render()});
   el.addEventListener('pointerup',e=>{if(!drag||e.button!==0||drag.pointerId!==e.pointerId)return;const a=drag,d=Math.hypot(e.clientX-a.x,e.clientY-a.y);this.pick(e);const hit=this.ray.intersectObjects(this.meshes,false)[0],slot=this.ray.intersectObjects(this.slots,false)[0];clear();if(a.gap){this.onGapEnd?.();return;}if(this.mode==='light'){this.onLightEnd?.();return}if(a.handle&&d<15){this.onHandle?.(a.handle);return}if(this.mode==='move'&&a.id&&hit&&hit.object.userData.id!==a.id&&d>5&&this.allowSwap?.(a.id,hit.object.userData.id)!==false){this.onDrop?.(a.id,hit.object.userData.id);return}if(this.mode==='move'&&a.id&&slot&&d>5){this.onMoveSlot?.(a.id,slot.object.userData.slot);return}if(d<5&&hit)this.onSelect(hit.object.userData.id,hitFace(hit))});
   const cancel=()=>{if(!drag)return;const spacing=Boolean(drag.gap);clear();if(spacing)this.onGapEnd?.();if(this.mode==='light')this.onLightEnd?.()};
-  el.addEventListener('pointerleave',()=>this.onHoverCube?.(null));
+  el.addEventListener('pointerleave',()=>{
+   this.lastHoveredHandle=null;this.lastHoveredCube=null;
+   this.onHoverCube?.(null);this.onHoverHandle?.(null);
+  });
   el.addEventListener('pointerdown',event=>{
    if(event.pointerType==='touch'&&!event.isPrimary&&drag)cancel();
   },true);
   const cancelPointer=event=>{if(drag?.pointerId===event.pointerId)cancel()};
   el.addEventListener('pointercancel',cancelPointer);
   el.addEventListener('lostpointercapture',cancelPointer);
+ }
+ previewTransforms(changes){
+  const signature=changes?.length ? JSON.stringify(changes) : '';
+  if(this.previewSignature===signature)return;
+  this.previewSignature=signature;
+  this.transformPreview.clear();
+  if(changes?.length){
+   const proposed=new Map(changes.map(change=>[change.id,change]));
+   const positions=this.cubes.map(cube=>proposed.get(cube.id)?.p??cube.p);
+   const center=[0,1,2].map(i=>(Math.min(...positions.map(p=>p[i]))+Math.max(...positions.map(p=>p[i])))/2);
+   for(const mesh of this.meshes){
+    const change=proposed.get(mesh.userData.id);
+    if(!change)continue;
+    const outline=new T.LineSegments(mesh.children[0].geometry,this.previewMaterial);
+    outline.position.set(...change.p.map((value,i)=>(value-center[i])*(1+this.spacing[i])));
+    outline.quaternion.copy(change.r?poseQuaternion(change.r):mesh.quaternion);
+    outline.renderOrder=24;
+    this.transformPreview.add(outline);
+   }
+  }
+  this.render();
  }
  highlightHover(ids){
   const next=new Set(ids);
@@ -140,7 +175,7 @@ export class SceneView {
   this.updateNavigation();
  }
  texture(src){if(!src)return null;if(!this.cache.has(src)){const t=this.loader.load(src,()=>this.render());t.colorSpace=T.SRGBColorSpace;this.cache.set(src,t)}return this.cache.get(src)}
- update(cubes,selected=[],spacing=[.12,.12,.12],animate=false){this.animationToken=(this.animationToken||0)+1;const token=this.animationToken;const old=new Map(this.meshes.map(m=>[m.userData.id,m]));const center=[0,1,2].map(i=>cubes.length?(Math.min(...cubes.map(c=>c.p[i]))+Math.max(...cubes.map(c=>c.p[i])))/2:0);this.cubes=cubes;this.center=center;this.spacing=spacing;const transitions=[];const activeVolumes=new Set();this.meshes=[];this.hoverIds=new Set();
+ update(cubes,selected=[],spacing=[.12,.12,.12],animate=false){this.animationToken=(this.animationToken||0)+1;const token=this.animationToken;const old=new Map(this.meshes.map(m=>[m.userData.id,m]));const center=[0,1,2].map(i=>cubes.length?(Math.min(...cubes.map(c=>c.p[i]))+Math.max(...cubes.map(c=>c.p[i])))/2:0);this.cubes=cubes;this.center=center;this.spacing=spacing;const transitions=[];const activeVolumes=new Set();this.meshes=[];this.hoverIds=new Set();this.lastHoveredCube=null;this.lastHoveredHandle=null;
   for(const c of cubes){let m=old.get(c.id);if(m){old.delete(c.id)}else{m=new T.Mesh(this.geo,[]);this.group.add(m);m.userData.id=c.id;m.castShadow=true;m.receiveShadow=true;const line=new T.LineSegments(this.edges,new T.LineBasicMaterial({color:0xffcb70}));m.add(line)}
    const volumeKey = c.volume ? c.volume.size + ':' + c.volume.cells : null;
    if (volumeKey) activeVolumes.add(volumeKey);
@@ -188,7 +223,7 @@ export class SceneView {
     m.userData.sources = [...c.faces];
     m.castShadow = opacity.every(value => value === 1) && !materials.some(material => material.blend);
    }
-   const p=new T.Vector3(...c.p.map((v,i)=>(v-center[i])*(1+spacing[i]))),r=c.r,q=new T.Quaternion().setFromRotationMatrix(new T.Matrix4().set(r[0],r[1],r[2],0,r[3],r[4],r[5],0,r[6],r[7],r[8],0,0,0,0,1));if(animate&&m.userData.placed)transitions.push({m,p,q,from:m.position.clone(),rot:m.quaternion.clone()});else{m.position.copy(p);m.quaternion.copy(q)}m.userData.placed=true;m.children[0].visible=selected.includes(c.id)&&this.mode!=='select';m.children[0].material.color.setHex(0xffcb70);this.meshes.push(m)}
+   const p=new T.Vector3(...c.p.map((v,i)=>(v-center[i])*(1+spacing[i]))),q=poseQuaternion(c.r);if(animate&&m.userData.placed)transitions.push({m,p,q,from:m.position.clone(),rot:m.quaternion.clone()});else{m.position.copy(p);m.quaternion.copy(q)}m.userData.placed=true;m.children[0].visible=selected.includes(c.id)&&this.mode!=='select';m.children[0].material.color.setHex(0xffcb70);this.meshes.push(m)}
   for(const m of old.values()){this.group.remove(m);if(Array.isArray(m.material))m.material.forEach(x=>x.dispose());m.children[0].material.dispose()}
   for (const [key, volume] of this.volumeCache) if (!activeVolumes.has(key)) {
    volume.mesh.dispose();

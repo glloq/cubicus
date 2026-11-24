@@ -36,6 +36,14 @@ export class Controller {
     this.modeButtons = [...host.querySelectorAll('[data-mode]')];
     this.rotationButtons = this.directionButtons(q('rotations'), (axis, sign) => this.rotate(axis, sign), '90°');
     this.moveButtons = this.directionButtons(q('moves'), (axis, sign) => this.move(axis, sign), '1');
+    for(const [buttons,prepare] of [[this.rotationButtons,(axis,sign)=>this.rotationAction(axis,sign)],
+      [this.moveButtons,(axis,sign)=>this.moveAction(axis,sign)]]){
+      for(const {button,axis,sign} of buttons){
+        const preview=()=>this.preview(prepare(axis,sign));
+        button.onpointerenter=button.onfocus=preview;
+        button.onpointerleave=button.onblur=()=>this.preview(null);
+      }
+    }
     q('scope').onchange = event => {
       if (!this.available.scopes.includes(event.target.value)) return;
       this.scope = event.target.value;
@@ -134,6 +142,7 @@ export class Controller {
     };
     view.onLightEnd = () => this.finishLight();
     view.onAnimationEnd=()=>this.refreshControls();
+    view.onHoverHandle=handle=>this.preview(handle?this.rotationAction(handle.axis,handle.sign):null);
     view.onHandle = ({axis,sign}) => this.rotate(axis,sign);
     view.globalGapValue = () => Number(this.control('gap').value)/100;
     view.onGapStart = () => { this.gapBefore = this.snapshot(); };
@@ -206,6 +215,7 @@ export class Controller {
     this.host.dataset.mode = mode;
     this.modeButtons.forEach(button => button.classList.toggle('active', button.dataset.mode === mode));
     this.view.highlightHover([]);
+    this.preview(null);
     this.view.setMode(mode);
     this.draw();
   }
@@ -245,7 +255,12 @@ export class Controller {
   rotate(axis,sign) { this.run(this.rotationAction(axis,sign)); }
   move(axis,sign) { this.run(this.moveAction(axis,sign)); }
 
+  preview(action) {
+    this.view.previewTransforms(action&&!this.view.animating?previewAction(this.transformIndex,action):null);
+  }
+
   run(action,id) {
+    this.preview(null);
     const changes = action && !this.view.animating && previewAction(this.transformIndex,action);
     if (!changes) {
       this.hint.textContent = 'Transformation indisponible pour cette sélection.';
@@ -354,6 +369,7 @@ export class Controller {
   }
 
   draw(animate = false) {
+    this.preview(null);
     if (!this.index || this.index.cubes !== this.cubes) this.updateIndex();
     const group = this.refreshControls();
     this.view.update(this.cubes,group.map(cube => cube.id),this.spacing,animate);

@@ -65,6 +65,9 @@ try {
     const r=fixture.view.renderer.domElement.getBoundingClientRect();
     return {x:r.left+(1+p.x)*r.width/2,y:r.top+(1-p.y)*r.height/2};
   });
+  await page.mouse.move(handle.x,handle.y);
+  assert.equal(await page.evaluate(()=>fixture.view.transformPreview.children.length),1);
+  assert.deepEqual((await state()).cubes,initial.cubes);
   await page.mouse.click(handle.x,handle.y);
   assert.notDeepEqual((await state()).cubes,initial.cubes);
   await page.locator('#undo').click();
@@ -100,6 +103,25 @@ try {
   await page.locator('#reset').click();
   assert.deepEqual(await page.evaluate(()=>fixture.view.light.position.toArray()),[2,3,4]);
   assert.deepEqual(await page.evaluate(()=>fixture.view.camera.up.toArray()),[0,1,0]);
+
+  const line=grid(3,1,1);
+  const linePuzzle=exportPuzzle(line,controlRules({version:2,rotation:{individual:false,simultaneous:false,collective:true,axes:['Z']},
+    selection:{line:true,layer:false,all:false},movement:{swap:false,emptySlots:false},lighting:{direction:false,shadows:false}}),
+    {position:[0,0,8],target:[0,0,0],spacing:[0,0,0],zoom:1,orthographic:true});
+  await upload(linePuzzle);
+  await page.locator('button[data-mode=rotate]').click();
+  await page.locator('#scope').selectOption('line');
+  await clickCube(linePuzzle.cubes.find(cube=>cube.p[0]===1).id);
+  assert.match(await page.locator('#selectionCount').textContent(),/^3/);
+  await page.locator('.rotationtools summary').click();
+  const rotate=page.locator('#rotations').getByRole('button',{name:'Z +90°'});
+  const original=(await state()).cubes;
+  await rotate.hover();
+  assert.equal(await page.evaluate(()=>fixture.view.transformPreview.children.length),3);
+  assert.deepEqual((await state()).cubes,original);
+  await rotate.click();
+  assert.deepEqual((await state()).cubes.map(cube=>cube.p[0]),[1,1,1]);
+  assert.deepEqual((await state()).cubes.map(cube=>cube.p[1]).sort((a,b)=>a-b),[-1,0,1]);
 
   const studio=await browser.newPage({viewport:{width:1100,height:850}});
   studio.on('pageerror',error=>errors.push(error.message));

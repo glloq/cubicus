@@ -24,7 +24,7 @@ TESTED indique que la fonctionnalité livrée a été exercée par un contrôle 
 | CT05 | PARTIEL | Résumé adaptatif en direct et Player intégré sur une copie publique. Le test intégré recharge la copie à la demande. |
 | CT06 | TESTED | Cinq outils, catégories secondaires et vue minimale en observation. |
 | CT07 | TESTED | Cube, ligne, couche, groupe défini, multiple et ensemble, contours au survol et compteur. |
-| CT08 | PARTIEL | Axes et sens légaux, rotations simultanées ou collectives et contrôle de collisions. L’aperçu de pose avant une rotation collective reste à faire. |
+| CT08 | TESTED | Axes et sens légaux, rotations simultanées ou collectives, contrôle de collisions et aperçu 3D avant validation. |
 | CT09 | TESTED | Permutations atomiques, cases libres en 3D, translation, cycle, échange de couches et échange par glissement de groupes compatibles. |
 | CT10 | TESTED | Verrouillages, axes, places et restrictions par cube, édition par sélection. Indicateur permanent de verrouillage encore absent. |
 | CT11 | PARTIEL | Création, renommage, copie avec fragments, dissolution et solidarité. Un groupe par cube et pivot automatique au centre de l’enveloppe. Axes définis par intersection des contraintes des membres. |
