@@ -286,7 +286,8 @@ input::file-selector-button {
   :is(.player-page,.studio-page) .toolstrip button { padding: 5px 4px; font-size: 12px; min-height: 36px; }
   .player-page #controls { bottom: 8px; width:calc(100% - 16px); }
   .player-help { left:8px; top:8px; }
-  .menu-content { left:auto; right:0; }
+  #localProjects { position: static; }
+  .menu-content { top: calc(100% + 4px); left: 9px; right: auto; max-height: min(65dvh, calc(100dvh - 160px)); }
 }
 
 .studio-page .scene-workspace #view { order: 0; }

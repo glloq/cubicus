@@ -103,6 +103,8 @@ try {
   const cell = page.locator('#volumeCells button[aria-pressed=false]').first();
   await cell.click();
   assert.equal(await page.locator('#volumeCells button[aria-pressed=false]').count(), 15);
+  await page.locator('[data-stage=prepare]').click();
+  await page.locator('#capturePublicView').click();
   const downloadPromise = page.waitForEvent('download');
   await page.locator('#export').click();
   const exported = await downloadPromise;
@@ -186,6 +188,34 @@ try {
   });
   assert.deepEqual(reflection, {rendered:true, textureWidth:256, orthographicFallback:true});
   assert.deepEqual(errors, []);
+  const mobile = await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+  await mobile.goto((process.env.BASE_URL || 'http://127.0.0.1:8080')+'/studio.html');
+  await mobile.locator('#view > canvas').waitFor();
+  async function importFile(name,buffer){
+    const menu=mobile.locator('#localProjects');
+    if(await menu.getAttribute('open')===null)await mobile.locator('#startOpen').tap();
+    const bounds=await mobile.locator('.menu-content').boundingBox();
+    assert.ok(bounds.x>=0&&bounds.x+bounds.width<=390);
+    const chooser=mobile.waitForEvent('filechooser');
+    await mobile.locator('#importProject').tap();
+    await (await chooser).setFiles({name,mimeType:'application/json',buffer});
+  }
+  await importFile('Départ.puzzle',Buffer.from(JSON.stringify(puzzle)));
+  await mobile.locator('#status').filter({hasText:'Projet importé : Départ'}).waitFor();
+  assert.equal(await mobile.locator('#cubePicker option').count(),puzzle.cubes.length);
+  await mobile.locator('#startOpen').tap();
+  const privateDownload=mobile.waitForEvent('download');
+  await mobile.locator('#save').tap();
+  const privateBuffer=await readFile(await (await privateDownload).path());
+  const converted=JSON.parse(privateBuffer);
+  assert.deepEqual(converted.publicView,puzzle.view);
+  await importFile('réimport.cubicus',privateBuffer);
+  await mobile.locator('#status').filter({hasText:'Projet importé : Départ'}).waitFor();
+  await mobile.waitForFunction(()=>document.querySelector('#projectList').options.length===2);
+  await importFile('illisible.puzzle',Buffer.from('fichier incomplet'));
+  await mobile.locator('#status').filter({hasText:'Impossible de lire'}).waitFor();
+  assert.equal(await mobile.locator('#cubePicker option').count(),puzzle.cubes.length);
+
   console.log('Projets, concurrence, dessin et import, volumes, références, Player et miroir OK');
 } catch (error) {
   await captureFailure(browser, 'projects').catch(console.error);

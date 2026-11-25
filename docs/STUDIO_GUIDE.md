@@ -35,7 +35,7 @@ Le mode création peut déplacer des cubes que le joueur verra verrouillés. Vé
 
 ## Se repérer dans l’atelier
 
-Les parcours dans **Assemblage** ouvrent directement un outil d’édition ou un générateur. **Inspecter la face** ouvre le dessin depuis la scène. L’inspecteur sépare **Dessin**, **Matière** et **Volume**. Dans **Préparer**, utilisez **Contrôler l’export** pour vérifier le fichier public avant de le télécharger. Le menu **Projets** donne accès aux fichiers privés, au brouillon et aux versions locales.
+Les parcours dans **Assemblage** ouvrent directement un outil d’édition ou un générateur. **Inspecter la face** ouvre le dessin depuis la scène. L’inspecteur sépare **Dessin**, **Matière** et **Volume**. Dans **Préparer**, utilisez **Contrôler l’export** pour vérifier le fichier public avant de le télécharger. Dans **Projets → Importer .cubicus ou .puzzle**, ouvrez un projet privé ou créez un projet éditable à partir d’une énigme publiée. Le fichier public fournit les textures composées et les réglages du joueur. Le fichier privé conserve aussi les calques, les références et le parcours de test.
 
 ## Dessiner sur les six faces
 

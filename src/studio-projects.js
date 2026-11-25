@@ -1,4 +1,4 @@
-import { deleteProject, listProjects, loadProject, readPrivateProject, writeProject } from './projects.js';
+import { deleteProject, listProjects, loadProject, readPrivateProject, readStudioFile, writeProject } from './projects.js';
 import { download } from './storage.js';
 
 export function bindProjects({read, apply, create, isComposing, hasFailedComposition, status}) {
@@ -118,14 +118,23 @@ export function bindProjects({read, apply, create, isComposing, hasFailedComposi
     await show(create());
     status('Nouveau projet créé');
   });
+  q('importProject').onclick = () => q('load').click();
   q('load').onchange = event => {
     const file = event.target.files[0];
     event.target.value = '';
     if (file) switchProject(async () => {
-      const project = readPrivateProject(JSON.parse(await file.text()));
+      const source = await file.text();
+      let raw;
+      try {
+        raw = JSON.parse(source.replace(/^\uFEFF/, ''));
+      } catch {
+        throw new Error('Impossible de lire « '+file.name+' ». Le fichier doit contenir un projet ou une énigme Cubicus.');
+      }
+      const project = readStudioFile(raw, file.name);
       await flush();
       await show(project);
-      status('Projet importé');
+      q('localProjects').open = false;
+      status('Projet importé : '+project.name);
     });
   };
   q('openLocal').onclick = () => {
