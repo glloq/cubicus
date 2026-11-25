@@ -112,10 +112,14 @@ try {
     const id = new URLSearchParams(location.search).get('test');
     if (id) {
       const version=++loadVersion;
-      const puzzle = await getPuzzle(id);
-      if(version===loadVersion){
-      if (!puzzle) throw new Error('Test introuvable');
-      open(puzzle,'Test depuis le Studio');
+      try {
+        const puzzle=await getPuzzle(id);
+        if(version===loadVersion){
+          if(!puzzle)throw Error('Test introuvable');
+          open(puzzle,'Test depuis le Studio');
+        }
+      } catch(error) {
+        if(version===loadVersion)throw error;
       }
     } else openDemo();
   }

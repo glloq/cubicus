@@ -164,6 +164,7 @@ export class SceneView {
    this.beamLines=new T.LineSegments(new T.BufferGeometry(),new T.LineBasicMaterial({color:0x46ffe4}));
    this.scene.add(this.beamLines);
   }
+  this.beamLines.material.color.set(this.beamColor??0x46ffe4);
   const points=segments.flatMap(segment=>segment.flatMap(point=>point.map((value,i)=>(value-this.center[i])*(1+this.spacing[i]))));
   const signature=points.join(',');
   if(signature===this.beamSignature)return;
@@ -172,6 +173,57 @@ export class SceneView {
   this.beamLines.geometry=new T.BufferGeometry();
   this.beamLines.geometry.setAttribute('position',new T.Float32BufferAttribute(points,3));
   this.beamLines.visible=points.length>0;
+ }
+ updateZoneLines() {
+  const zones=this.visibleZones??[];
+  if(!this.zoneLines&&!zones.length)return;
+  if(!this.zoneLines){
+   this.zoneLines=new T.LineSegments(new T.BufferGeometry(),new T.LineBasicMaterial({
+    vertexColors:true,transparent:true,opacity:.65
+   }));
+   this.scene.add(this.zoneLines);
+  }
+  const signature=JSON.stringify([zones,this.center,this.spacing]);
+  if(signature===this.zoneSignature)return;
+  this.zoneSignature=signature;
+  const points=[], colors=[];
+  for(const zone of zones){
+   const color=new T.Color(zone.color).toArray();
+   const edge=[zone.from,zone.to].map((position,side)=>position.map((value,i)=>
+    (value-this.center[i])*(1+this.spacing[i])+(side ? .48 : -.48)));
+   for(let mask=0;mask<8;mask++)for(let axis=0;axis<3;axis++){
+    if(mask&(1<<axis))continue;
+    for(const corner of [mask,mask|(1<<axis)]){
+     points.push(...[0,1,2].map(i=>edge[(corner>>i)&1][i]));
+     colors.push(...color);
+    }
+   }
+  }
+  this.zoneLines.geometry.dispose();
+  this.zoneLines.geometry=new T.BufferGeometry();
+  this.zoneLines.geometry.setAttribute('position',new T.Float32BufferAttribute(points,3));
+  this.zoneLines.geometry.setAttribute('color',new T.Float32BufferAttribute(colors,3));
+  this.zoneLines.visible=points.length>0;
+ }
+ updateLamps() {
+  const lamps=this.lampPositions??[];
+  if(!this.lamps&&!lamps.length)return;
+  if(!this.lamps){
+   this.lamps=new T.Points(new T.BufferGeometry(),new T.PointsMaterial({
+    size:.22,vertexColors:true,depthTest:false
+   }));
+   this.lamps.renderOrder=25;
+   this.scene.add(this.lamps);
+  }
+  const positions=lamps.flatMap(lamp=>lamp.p.map((value,i)=>(value-this.center[i])*(1+this.spacing[i])));
+  const signature=JSON.stringify([positions,lamps.map(lamp=>lamp.color)]);
+  if(signature===this.lampSignature)return;
+  this.lampSignature=signature;
+  this.lamps.geometry.dispose();
+  this.lamps.geometry=new T.BufferGeometry();
+  this.lamps.geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));
+  this.lamps.geometry.setAttribute('color',new T.Float32BufferAttribute(lamps.flatMap(lamp=>new T.Color(lamp.color).toArray()),3));
+  this.lamps.visible=positions.length>0;
  }
  render(){
   if(this.lightMarker){
@@ -264,6 +316,8 @@ export class SceneView {
   const used=new Set(cubes.flatMap(c=>c.faces).filter(Boolean));for(const [k,t] of this.cache)if(!used.has(k)){t.dispose();this.cache.delete(k)}
   this.extent=Math.max(2,...this.meshes.map(m=>m.position.length()+1),...transitions.map(a=>a.p.length()+1));this.receiver.position.y=Math.min(0,...this.meshes.map(m=>m.position.y))-.65;const sc=this.light.shadow.camera;sc.left=sc.bottom=-this.extent*1.5;sc.right=sc.top=this.extent*1.5;sc.far=1000;sc.updateProjectionMatrix();
   this.updateBeamLines();
+  this.updateLamps();
+  this.updateZoneLines();
   this.animating=transitions.length>0;this.updateGizmo(selected);if(this.animating){const start=performance.now();const frame=now=>{if(token!==this.animationToken)return;const t=Math.min(1,(now-start)/180),ease=t*t*(3-2*t);for(const a of transitions){if(!hinge||!previousCenter||!this.hingePosition(a.m,hinge,center,previousCenter,spacing,ease))a.m.position.lerpVectors(a.from,a.p,ease);a.m.quaternion.slerpQuaternions(a.rot,a.q,ease)}if(t<1)requestAnimationFrame(frame);else{this.animating=false;this.updateGizmo(this.selectedIds);this.onAnimationEnd?.()}this.render()};requestAnimationFrame(frame)}this.render()
  }
  fit() {

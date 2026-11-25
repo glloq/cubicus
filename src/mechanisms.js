@@ -1,7 +1,8 @@
+import {applyCounter,evaluateCondition,matchZone,normalizeLogic,occupancyFor,remapLogic} from './mechanism-logic.js';
 import {AXES} from './control-rules.js';
 
 export const faces = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
-const events = ['turn','move','contact','beam'];
+const events = ['turn','move','contact','beam','tick','enter','leave'];
 const devices = ['emitter','mirror','receiver'];
 const flagPattern = /^[a-zA-Z0-9_-]{1,40}$/;
 const same = (a,b) => a.every((value,i)=>value===b[i]);
@@ -45,29 +46,35 @@ export function mechanismConfig(raw,cubes) {
     return result;
   });
   if(new Set(optics.map(device=>device.cube)).size!==optics.length)throw Error('Un seul dispositif optique par cube.');
+  const {extendRule,...logic}=normalizeLogic(list,requireCube,requireFlag,faceIndex);
   const rules=list('rules',128).map(rule=>{
     if(!events.includes(rule.event))throw Error('Événement de mécanisme invalide.');
-    const next={event:rule.event,cube:requireCube(rule.cube),set:requireFlag(rule.set),value:rule.value!==false};
+    const next={event:rule.event};
+    if(['contact','beam'].includes(rule.event)||(['turn','move'].includes(rule.event)&&rule.cube))next.cube=requireCube(rule.cube);
+    if(rule.set){next.set=requireFlag(rule.set);next.value=rule.value!==false;}
     if(rule.needs)next.needs=requireFlag(rule.needs);
     if(rule.event==='contact')Object.assign(next,{other:requireCube(rule.other),face:faceIndex(rule.face),otherFace:faceIndex(rule.otherFace)});
     if(rule.event==='turn'&&AXES.includes(rule.axis))next.axis=rule.axis;
     if(rule.event==='turn'&&[-1,1].includes(rule.sign))next.sign=rule.sign;
+    extendRule(rule,next);
     return next;
   });
-  return flags.length||optics.length||joins.length ? {version:1,flags,gates,optics,rules,joins} : null;
+  return flags.length||optics.length||joins.length||logic.counters.length||logic.zones.length ? {version:1,flags,gates,optics,rules,joins,...logic} : null;
 }
 
 export function remapMechanisms(config,idMap) {
   if(!config)return null;
   const states=new Map(config.flags.map((flag,i)=>[flag,'s'+i]));
+  const {remapRule,...logic}=remapLogic(config,idMap,states);
   return {
-    version:1,
+    version:1, ...logic,
     flags:[...states.values()],
     gates:config.gates.map(gate=>({...gate,cube:idMap.get(gate.cube),flag:states.get(gate.flag)})),
     joins:config.joins.map(join=>({...join,cube:idMap.get(join.cube),other:idMap.get(join.other)})),
     optics:config.optics.map(device=>({...device,cube:idMap.get(device.cube),
       ...(device.enabledBy?{enabledBy:states.get(device.enabledBy)}:{})})),
-    rules:config.rules.map(rule=>({...rule,cube:idMap.get(rule.cube),set:states.get(rule.set),
+    rules:config.rules.map(rule=>({...rule,...remapRule(rule),
+      ...(rule.cube?{cube:idMap.get(rule.cube)}:{}),...(rule.set?{set:states.get(rule.set)}:{}),
       ...(rule.other?{other:idMap.get(rule.other)}:{}),...(rule.needs?{needs:states.get(rule.needs)}:{})}))
   };
 }
@@ -116,31 +123,64 @@ export function traceBeams(config,cubes,active=[]) {
 }
 
 export function mechanismStep(config,cubes,previous=[],action=null) {
-  const active=new Set(previous);
-  const beams=traceBeams(config,cubes,previous);
-  if(!config)return {active:[...active],...beams};
+  const previousFlags=Array.isArray(previous)?previous:previous.active;
+  const active=new Set(previousFlags);
+  const beams=traceBeams(config,cubes,previousFlags);
+  const counters={...Object.fromEntries((config?.counters??[]).map(counter=>[counter.id,counter.initial])),...previous.counters};
+  const occupancy=occupancyFor(config?.zones??[],cubes);
+  const journal=[];
+  if(!config)return {active:[...active],counters,occupancy,journal,...beams};
   const byId=new Map(cubes.map(cube=>[cube.id,cube]));
-  // Conditions see the state at the start of the action. Rules are applied in authored order.
-  const eligible=config.rules.filter(rule=>{
-    if(rule.needs&&!active.has(rule.needs))return false;
+  function occurred(rule){
+    if(rule.event==='tick')return true;
+    if(rule.event==='enter'||rule.event==='leave')return action&&matchZone(rule.event,rule.zone,rule.cube,previous.occupancy??{},occupancy);
     if(rule.event==='beam')return beams.receivers.has(rule.cube);
-    if(rule.event==='contact'){
-      const a=byId.get(rule.cube), b=byId.get(rule.other);
-      if(!a||!b)return false;
-      return faceContact(a,rule.face,b,rule.otherFace);
-    }
-    if(!action||![...(action.ids??[]),...(action.otherIds??[])].includes(rule.cube))return false;
+    if(rule.event==='contact')return faceContact(byId.get(rule.cube),rule.face,byId.get(rule.other),rule.otherFace);
+    if(!action||(rule.cube&&![...(action.ids??[]),...(action.otherIds??[])].includes(rule.cube)))return false;
     const turn=action.type==='rotate'||action.type==='collective';
-    return rule.event==='move' ? !turn : turn&&(!rule.axis||rule.axis===action.axis)&&(!rule.sign||rule.sign===action.sign);
+    return rule.event==='move'?!turn:turn&&(!rule.axis||rule.axis===action.axis)&&(!rule.sign||rule.sign===action.sign);
+  }
+  // Every rule observes the same initial flags and counters, plus the new positions.
+  const eligible=config.rules.filter((rule,index)=>{
+    if(!occurred(rule))return false;
+    const conditions=rule.when?.items.map(item=>evaluateCondition(item,active,counters,occupancy,beams.receivers,action))??[];
+    const matched=(!rule.needs||active.has(rule.needs))&&
+      (!rule.when||(rule.when.mode==='any'?conditions.some(Boolean):conditions.every(Boolean)));
+    journal.push({rule:index+1,matched,conditions});
+    return matched;
   });
   for(const rule of eligible){
-    if(rule.value)active.add(rule.set);
-    else active.delete(rule.set);
+    if(rule.set){if(rule.value)active.add(rule.set);else active.delete(rule.set);}
+    if(rule.counter)applyCounter(counters,rule.counter);
   }
   const next=[...active];
-  const output=config.optics.some(device=>device.enabledBy&&active.has(device.enabledBy)!==previous.includes(device.enabledBy))
-    ? traceBeams(config,cubes,next) : beams;
-  return {active:next,...output};
+  const output=config.optics.some(device=>device.enabledBy&&active.has(device.enabledBy)!==previousFlags.includes(device.enabledBy))
+    ?traceBeams(config,cubes,next):beams;
+  return {active:next,counters,occupancy,journal,...output};
+}
+
+export function visualEffects(config,cubes,active){
+  const visuals=config?.visuals??[];
+  if(!visuals.length)return {cubes,lamps:[],beamColor:null};
+  const byId=new Map(cubes.map(cube=>[cube.id,cube]));
+  const visibility=new Map();
+  const lamps=[];
+  let beamColor=null;
+  for(const effect of visuals){
+    if(effect.kind==='reveal'){
+      const key=effect.cube+':'+effect.face;
+      visibility.set(key,Boolean(visibility.get(key)||active.includes(effect.flag)));
+    }else if(active.includes(effect.flag)){
+      if(effect.kind==='lamp'&&byId.has(effect.cube))lamps.push({p:byId.get(effect.cube).p,color:effect.color});
+      if(effect.kind==='beam')beamColor=effect.color;
+    }
+  }
+  const visibleCubes=visibility.size?cubes.map(cube=>{
+    if(![0,1,2,3,4,5].some(face=>visibility.has(cube.id+':'+face)))return cube;
+    return {...cube,opacity:[0,1,2,3,4,5].map(face=>visibility.has(cube.id+':'+face)
+      ?Number(visibility.get(cube.id+':'+face)):cube.opacity?.[face]??1)};
+  }):cubes;
+  return {cubes:visibleCubes,lamps,beamColor};
 }
 
 function faceContact(a, aFace, b, bFace) {

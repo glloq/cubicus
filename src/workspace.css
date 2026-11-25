@@ -376,3 +376,7 @@ input::file-selector-button {
 
 #playtestStatus:empty { display: none; }
 #playtestStatus { margin: 4px 0 0; color: #ffb4a4; }
+
+#logicJournal { max-height: 200px; overflow: auto; white-space: pre-wrap; }
+#logicJournal:empty { display: none; }
+#conditionDraft, #mechanismList { padding-inline-start: 18px; }

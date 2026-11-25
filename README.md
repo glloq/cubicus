@@ -15,7 +15,7 @@ Ces liens ouvrent la version publiée sur GitHub Pages. Pour essayer les changem
 - **Préparation** · Configurez les contrôles avec un profil ou règle par règle, appliquez des contraintes aux cubes et aux groupes, puis mélangez l’assemblage avec les opérations autorisées. Testez l’énigme dans le Studio ou dans un nouvel onglet.
 - **Player** · Ouvrez un fichier `.puzzle` ou une démo. Les commandes s’adaptent aux règles, à l’assemblage et à la sélection. Le fichier privé `.cubicus` conserve les calques et les références de création. L’export public contient l’état initial, les textures finales et les règles de jeu.
 
-Le panneau **Préparer → Mécanismes et parcours de test** propose dix modèles et un éditeur de règles sans code. Le Studio peut vérifier un parcours sur le départ public tout en conservant les actions enregistrées dans le projet privé.
+Le panneau **Préparer → Mécanismes et parcours de test** propose onze modèles et un éditeur de règles sans code. Le Studio peut vérifier un parcours sur le départ public tout en conservant les actions enregistrées dans le projet privé.
 
 ## Intégrer une énigme dans un site
 

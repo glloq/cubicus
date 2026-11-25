@@ -56,6 +56,21 @@ try {
   await page.locator('#playerTutorial[open]').waitFor();
   assert.doesNotMatch(await page.locator('#playerTips').textContent(),/séparation des fragments/);
   assert.equal(await page.locator('#status').textContent(),'');
+  await page.locator('#startPuzzle').tap();
+  await page.evaluate(()=>{
+    const original=File.prototype.text;
+    File.prototype.text=function(){
+      if(this.name!=='retardee.puzzle')return original.call(this);
+      return new Promise(resolve=>{window.releaseDelayed=()=>resolve('{}');});
+    };
+  });
+  await page.locator('#load').setInputFiles({name:'retardee.puzzle',mimeType:'application/json',buffer:Buffer.from('{}')});
+  await page.waitForFunction(()=>typeof window.releaseDelayed==='function');
+  await page.locator('#demo').selectOption('4');
+  await page.evaluate(()=>window.releaseDelayed());
+  await page.locator('#playerTutorial[open]').waitFor();
+  assert.equal(await page.locator('#puzzleMeta').textContent(),'4 fragments');
+  assert.equal(await page.locator('#status').textContent(),'');
   assert.deepEqual(errors,[]);
   console.log('Atelier et Player : parcours guidés, inspecteur, volume et mise en page mobile OK');
 } catch(error) {

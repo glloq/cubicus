@@ -191,15 +191,17 @@ function refreshControlsEditor(){
       status('Assemblage modifié pendant l’enregistrement. Parcours annulé.');
     }
     let removed=false;
-    for(const key of ['rules','gates','optics','joins']){
+    for(const key of ['rules','gates','optics','joins','visuals']){
       const entries=mechanisms[key]??[];
-      const retained=entries.filter(entry=>ids.has(entry.cube)&&(!entry.other||ids.has(entry.other)));
+      const retained=entries.filter(entry=>(!entry.cube||ids.has(entry.cube))&&(!entry.other||ids.has(entry.other))&&
+        (entry.when?.items??[]).every(condition=>(!['receiver','actor'].includes(condition.kind)||ids.has(condition.id))&&(!condition.cube||ids.has(condition.cube))));
       if(retained.length!==entries.length){
         mechanisms[key]=retained;
         removed=true;
       }
     }
     if(removed){
+      mechanismEditor.resetDraft();
       ctl.configureMechanisms(mechanisms);
       ctl.draw();
     }
@@ -533,6 +535,7 @@ projects = bindProjects({
     recording=false;
     proofStart=undefined;
     mechanismEditor.stop();
+    mechanismEditor.resetDraft();
     ctl.configureMechanisms(mechanisms);
     q('mixSeed').value=project.mixSeed;
     controlEditor.resetProfile();
@@ -737,6 +740,7 @@ mechanismEditor=bindMechanismEditor({
     recording=false;
     proofStart=undefined;
     mechanismEditor.stop();
+    mechanismEditor.resetDraft();
     ctl.configureMechanisms(mechanisms);
     ctl.replace(sample.cubes);
     ctl.selected=ctl.cubes[0].id;
@@ -755,6 +759,7 @@ mechanismEditor=bindMechanismEditor({
       scheduleDraft();
     }
     q('proofReport').textContent='';
+    q('logicJournal').textContent='';
     status('Modèle chargé. Ouvrez Tester ici pour jouer.');
   },
   record(){
@@ -790,11 +795,14 @@ mechanismEditor=bindMechanismEditor({
   verify(){
     try{
       const result=replayProof(ctl.cubes,rules,mechanismConfig(mechanisms,ctl.cubes),proof);
+      q('logicJournal').textContent=result.journal.flatMap(({step,entries})=>entries.map(entry=>
+        (step?'Action '+step:'Départ')+' · règle '+entry.rule+' · '+(entry.matched?'appliquée':'conditions non remplies')+
+        (entry.conditions.length?' ('+entry.conditions.map(value=>value?'oui':'non').join(', ')+')':''))).join('\n');
       q('proofReport').textContent=result.failed ? 'Action '+result.failed+' interdite.'
         : result.completed ? result.completed+' actions autorisées depuis le départ.'+(result.active.length?' États atteints : '+result.active.join(', ')+'.':'') : 'Aucune action à vérifier.';
-    }catch(error){q('proofReport').textContent=error.message;}
+    }catch(error){q('logicJournal').textContent='';q('proofReport').textContent=error.message;}
   },
-  clearProof(){proof=[];q('proofReport').textContent='';scheduleDraft();}
+  clearProof(){proof=[];q('logicJournal').textContent='';q('proofReport').textContent='';scheduleDraft();}
 });
 ctl.onAction=action=>{
   if(recording&&proof.length<500)proof.push(structuredClone(action));
@@ -803,6 +811,7 @@ mechanismEditor.refresh();
 
 function decorateTemplate(cubes,kind){
   const labels={
+    logicDoor:['PLAQUE A','PLAQUE B','CADRAN','PORTE'],
     sequence:['A','B','VERROU'], rails:['NAVETTE','AIGUILLE','BARRAGE'], mirrors:['SOURCE','MIROIR','CAPTEUR','VERROU'],
     contact:['CONTACT','BORNE','VERROU'], connectors:['PRISE','CONNECTEUR'], hinge:['PIVOT','BRAS','BARRAGE'],
     fresco:['TUILE','TUILE','TUILE','TUILE'], window:['FENÊTRE','VOLET','TRACE'],

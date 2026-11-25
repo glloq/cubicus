@@ -45,7 +45,7 @@ Pour une intégration sans deuxième fichier, copiez la ligne autonome. Cette va
 
 ## Concevoir une énigme à états
 
-Dans **Préparer → Mécanismes et parcours de test**, chargez un des dix modèles pour examiner ses cubes, ses règles et son parcours privé. Les modèles couvrent la serrure à séquence, les rails, les miroirs, le contact, les connecteurs solidaires, la charnière, la fresque, la fenêtre traversante, le double relais et la source commutée. La consigne publique est affichée dans **Aide de jeu** dans le Player.
+Dans **Préparer → Mécanismes et parcours de test**, chargez un des onze modèles pour examiner ses cubes, ses règles et son parcours privé. Les modèles couvrent la serrure à séquence, les rails, les miroirs, le contact, les connecteurs solidaires, la charnière, la fresque, la fenêtre traversante, le double relais, la source commutée et la porte à deux plaques. La consigne publique est affichée dans **Aide de jeu** dans le Player.
 
 Pour créer un mécanisme, nommez vos états, définissez une règle qui active ou désactive un état, puis associez cet état à un verrou ou à un émetteur. Les règles évaluent leurs conditions au début de chaque action validée et appliquent leurs effets dans l’ordre affiché. Un capteur nouvellement éclairé par l’activation d’un émetteur peut servir de condition à l’action suivante. Annuler, rétablir et réinitialiser restaurent également les états.
 
@@ -62,3 +62,13 @@ Les consignes publiées, les appareils et leurs règles sont lisibles dans l’e
 Le Player affiche une fenêtre d’aide à chaque ouverture d’énigme. Elle réunit la consigne publique, les commandes disponibles et les mécanismes présents. **Jouer** ferme la fenêtre et **Aide de jeu** permet de la rouvrir. L’export HTML autonome conserve ce tutoriel.
 
 Dans **Préparer → Thèmes du tutoriel**, ajoutez les effets dont l’origine est invisible dans le fichier final, comme une anamorphose peinte sur des textures. Les générateurs renseignent ces thèmes et les mécanismes structurés sont expliqués automatiquement.
+
+## Combiner des conditions dans une énigme
+
+Dans **Préparer → Mécanismes et parcours de test**, utilisez **Compteurs et zones** pour définir des valeurs de départ et des régions de la grille. Le contour d’une zone peut être visible dans la scène. Une règle peut réagir à l’entrée ou à la sortie d’un cube et combiner des états, des compteurs, des zones occupées, des capteurs et les cubes impliqués dans l’action. Choisissez **ET** ou **OU** pour l’ensemble et cochez **NON** pour inverser une condition. L’effet peut modifier un état et fixer ou incrémenter un compteur.
+
+Les conditions lisent les états et compteurs avant l’application des effets, avec les nouvelles positions des cubes. Si plusieurs règles s’appliquent, leurs effets sont exécutés dans l’ordre de la liste. Le modèle **Porte à deux plaques et compteur** illustre les voyants de présence et la remise à zéro après une action incompatible.
+
+Les états peuvent piloter un voyant, révéler une face, changer la couleur du faisceau ou libérer la position d’un cube sur son rail. Pour dupliquer un bloc dans le même projet, cochez ses règles, préparez les raccordements, attribuez les cubes de la copie et indiquez un préfixe distinct. Les zones peuvent être décalées. Les émetteurs, miroirs et capteurs se configurent séparément.
+
+**Vérifier le parcours depuis le départ** affiche dans le Studio un journal privé des règles rencontrées, de leurs conditions et de leur résultat. Les exports incluent les règles nécessaires au jeu et excluent le journal et le parcours enregistré.
