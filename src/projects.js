@@ -43,6 +43,23 @@ export function readPrivateProject(raw) {
   };
 }
 
+export function readStudioFile(raw, filename) {
+  if (!/\.puzzle$/i.test(filename)) return readPrivateProject(raw);
+  const cubes = validate(raw);
+  const view = initialView(raw.view);
+  return readPrivateProject({
+    version: 2,
+    name: filename.replace(/\.puzzle$/i, ''),
+    cubes,
+    controls: raw.controls,
+    mechanisms: raw.mechanisms,
+    instructions: raw.instructions,
+    tutorial: raw.tutorial,
+    view,
+    publicView: view
+  });
+}
+
 function normalizeName(name) {
   return typeof name === 'string' && name.trim() ? name.trim().slice(0, 80) : 'Sans titre';
 }
