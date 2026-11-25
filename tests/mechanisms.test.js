@@ -81,3 +81,67 @@ test('a hinged turn rejects an obstruction along the arc even when the destinati
   assert.equal(previewAction(initial,proof[1]),null);
   assert.equal(replayProof(cubes,controls,null,proof).completed,2);
 });
+
+test('combined conditions advance the counter only with two occupied zones and a wrong turn resets it',()=>{
+  const {cubes,controls,mechanisms,proof}=mechanismTemplate('logicDoor');
+  const config=mechanismConfig(mechanisms,cubes);
+  const attempt=replayProof(cubes,controls,config,[proof[2],proof[4]]);
+  assert.equal(attempt.failed,2);
+  assert.equal(attempt.counters.tours,0);
+  const interrupted=replayProof(cubes,controls,config,[...proof.slice(0,3),
+    {type:'rotate',ids:[cubes[0].id],axis:'Z',sign:1},proof[3],proof[4]]);
+  assert.equal(interrupted.failed,6);
+  assert.equal(interrupted.counters.tours,1);
+  const done=replayProof(cubes,controls,config,proof);
+  assert.equal(done.failed,0);
+  assert.equal(done.counters.tours,2);
+  assert.ok(done.active.includes('porte'));
+  assert.ok(done.journal.some(entry=>entry.entries.some(rule=>!rule.matched)));
+});
+
+test('zones trigger entry and exit only on transitions and public exports rename logic identifiers',()=>{
+  const {cubes,controls,mechanisms,proof}=mechanismTemplate('logicDoor');
+  const config=mechanismConfig(mechanisms,cubes);
+  const reversed={...proof[0],sign:-1};
+  const result=replayProof(cubes,controls,config,[proof[0],reversed]);
+  assert.equal(result.failed,0);
+  assert.equal(result.active.includes('voyant_a'),false);
+  const publicPuzzle=exportPuzzle(cubes,controls,null,mechanisms);
+  assert.deepEqual(publicPuzzle.mechanisms.zones.map(zone=>zone.id),['z0','z1']);
+  assert.deepEqual(publicPuzzle.mechanisms.counters,[{id:'c0',initial:0}]);
+  assert.equal(JSON.stringify(publicPuzzle).includes('plaque_a'),false);
+  assert.equal(JSON.stringify(publicPuzzle).includes('conditions non remplies'),false);
+  assert.ok(mechanismConfig(publicPuzzle.mechanisms,validate(publicPuzzle)));
+});
+
+test('visual effects are derived from flags without changing logical cubes',async()=>{
+  const {visualEffects}=await import('../src/mechanisms.js');
+  const piece=cube();
+  const config=mechanismConfig({version:1,flags:['signal'],visuals:[
+    {kind:'lamp',cube:piece.id,flag:'signal',color:'#ffffff'},
+    {kind:'reveal',cube:piece.id,face:3,flag:'signal'},
+    {kind:'beam',flag:'signal',color:'#ff0000'}
+  ]},[piece]);
+  assert.equal(visualEffects(config,[piece],[]).cubes[0].opacity[3],0);
+  const on=visualEffects(config,[piece],['signal']);
+  assert.equal(on.cubes[0].opacity[3],1);
+  assert.equal(on.beamColor,'#ff0000');
+  assert.equal(on.lamps.length,1);
+  assert.equal(piece.opacity,undefined);
+});
+
+test('a module rebinds cube references and duplicates its own counters, zones and effects',async()=>{
+  const {duplicateLogicModule,moduleCubes,selectLogicModule}=await import('../src/mechanism-module.js');
+  const {cubes,mechanisms}=mechanismTemplate('logicDoor');
+  const config=mechanismConfig(mechanisms,cubes);
+  const module=selectLogicModule(config,[0,1,4,5]);
+  const copies=cubes.map(({p})=>cube(p.map((value,i)=>i===2?value+1:value)));
+  const bindings=new Map(moduleCubes(module).map(id=>[id,copies[cubes.findIndex(cube=>cube.id===id)].id]));
+  const combined=duplicateLogicModule(config,module,bindings,'copie',[0,0,1]);
+  assert.equal(combined.rules.length,config.rules.length+4);
+  assert.ok(combined.flags.includes('copie_porte'));
+  assert.ok(combined.visuals.some(effect=>effect.cube===copies[0].id&&effect.flag==='copie_voyant_a'));
+  assert.deepEqual(combined.zones.find(zone=>zone.id==='copie_plaque_a').from,[1,0,1]);
+  assert.ok(mechanismConfig(combined,[...cubes,...copies]));
+  assert.throws(()=>mechanismConfig(duplicateLogicModule(combined,module,bindings,'copie',[0,0,1]),[...cubes,...copies]),/en double/);
+});

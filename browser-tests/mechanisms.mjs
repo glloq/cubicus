@@ -100,6 +100,46 @@ try{
     await page.locator('#verifyProof').click();
     assert.match(await page.locator('#proofReport').textContent(),/actions autorisées/,option);
   }
+  await page.locator('#mechanismTemplate').selectOption('logicDoor');
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#loadMechanismTemplate').click();
+  await page.locator('#verifyProof').click();
+  assert.match(await page.locator('#proofReport').textContent(),/5 actions autorisées/);
+  assert.match(await page.locator('#logicJournal').textContent(),/conditions non remplies/);
+  const sameRule=page.locator('#mechanismList li').filter({hasText:'Rotation'}).first();
+  await sameRule.getByRole('button',{name:'Réutiliser',exact:true}).click();
+  assert.equal(await page.locator('#conditionDraft li').count(),2);
+  assert.equal(await page.locator('#ruleCounter').inputValue(),'tours');
+  await page.locator('#resetRuleDraft').click();
+  await page.locator('#testInline').click();
+  const logicPlayer=page.frameLocator('#playtestFrame');
+  await logicPlayer.locator('#startPuzzle').click();
+  const logicFrame=await (await page.locator('#playtestFrame').elementHandle()).contentFrame();
+  const logic=await logicFrame.evaluate(()=>{
+    const ctl=fixture.ctl;
+    const [a,b]=ctl.mechanisms.rules.filter(rule=>rule.event==='enter').map(rule=>rule.cube);
+    const dial=ctl.mechanisms.rules.find(rule=>rule.counter?.op==='add').cube;
+    const run=(type,id,axis,sign=1)=>{ctl.view.animating=false;return ctl.run({type,ids:[id],axis,sign});};
+    run('step',a,'X');
+    run('step',b,'X');
+    run('rotate',dial,'Z');
+    run('rotate',dial,'Z');
+    const result={lamps:fixture.view.lampPositions.length,counter:Object.values(ctl.gameState.counters)[0],zones:fixture.view.zoneLines.visible};
+    ctl.travel('undo');
+    result.undone=Object.values(ctl.gameState.counters)[0];
+    result.lampsAfterUndo=fixture.view.lampPositions.length;
+    return result;
+  });
+  assert.deepEqual(logic,{lamps:3,counter:2,zones:true,undone:1,lampsAfterUndo:2});
+  await page.locator('#closePlaytest').click();
+
+  await sameRule.getByRole('checkbox').check();
+  await page.getByText('Dupliquer un module de règles',{exact:true}).click();
+  await page.locator('#modulePrefix').fill('copie');
+  await page.locator('#prepareModule').click();
+  await page.locator('#moduleBindings select').first().waitFor();
+  await page.locator('#duplicateModule').click();
+  assert.match(await page.locator('#mechanismList').textContent(),/Compteur copie_tours/);
   assert.deepEqual(errors,[]);
   console.log('Mécanismes : preuve privée, verrou dynamique, reset, SVG et calque vectoriel OK');
 }catch(error){

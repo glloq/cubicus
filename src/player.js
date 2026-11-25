@@ -20,6 +20,7 @@ help.onclick = () => {
 tutorial.addEventListener('close', () => help.focus({preventScroll:true}));
 let initial = [];
 let openingView;
+let loadVersion=0;
 const view = new SceneView(q('view'), id => ctl.select(id));
 const ctl = new Controller(view, q('controls'), structuredClone(initial));
 
@@ -72,6 +73,7 @@ function open(data,name) {
 }
 
 function openDemo() {
+  loadVersion++;
   open(exportPuzzle(demo(+q('demo').value)), 'Démonstration');
 }
 
@@ -79,9 +81,13 @@ q('load').onchange = async event => {
   const file = event.target.files[0];
   event.target.value = '';
   if (!file) return;
+  const version=++loadVersion;
   try {
-    open(JSON.parse(await file.text()), file.name.replace(/\.[^.]+$/,'') || 'Énigme importée');
+    const source=await file.text();
+    if(version!==loadVersion)return;
+    open(JSON.parse(source), file.name.replace(/\.[^.]+$/,'') || 'Énigme importée');
   } catch (error) {
+    if(version!==loadVersion)return;
     q('status').textContent = 'Impossible d’ouvrir cette énigme. ' + error.message;
   }
 };
@@ -105,9 +111,16 @@ try {
   } else {
     const id = new URLSearchParams(location.search).get('test');
     if (id) {
-      const puzzle = await getPuzzle(id);
-      if (!puzzle) throw new Error('Test introuvable');
-      open(puzzle,'Test depuis le Studio');
+      const version=++loadVersion;
+      try {
+        const puzzle=await getPuzzle(id);
+        if(version===loadVersion){
+          if(!puzzle)throw Error('Test introuvable');
+          open(puzzle,'Test depuis le Studio');
+        }
+      } catch(error) {
+        if(version===loadVersion)throw error;
+      }
     } else openDemo();
   }
 } catch (error) {

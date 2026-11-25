@@ -1,4 +1,4 @@
-import {gatedCubes,mechanismStep,traceBeams} from './mechanisms.js';
+import {gatedCubes,mechanismStep,traceBeams,visualEffects} from './mechanisms.js';
 import {History} from './history.js';
 import {AXES, controlRules, lightingState} from './control-rules.js';
 import {actionState, applyChanges, capabilities, groupSwapAction, layerSwapAction, previewAction, selection} from './control-actions.js';
@@ -197,8 +197,14 @@ export class Controller {
 
   configureMechanisms(config) {
     this.mechanisms=config;
-    this.activeFlags=mechanismStep(config,this.cubes).active;
+    this.advanceMechanisms();
     this.index=null;
+  }
+
+  advanceMechanisms(action) {
+    const next=mechanismStep(this.mechanisms,this.cubes,action?this.gameState:undefined,action);
+    this.gameState={active:next.active,counters:next.counters,occupancy:next.occupancy};
+    this.activeFlags=next.active;
   }
 
   updateIndex() {
@@ -280,7 +286,7 @@ export class Controller {
       starts:new Map(action.ids.map(id=>[id,[...this.index.byId.get(id).p]]))
     };
     applyChanges(this.index,changes);
-    if(this.player&&this.mechanisms)this.activeFlags=mechanismStep(this.mechanisms,this.cubes,this.activeFlags,action).active;
+    if(this.player&&this.mechanisms)this.advanceMechanisms(action);
     if (id) this.selected = id;
     this.hint.textContent = '';
     this.onAction?.(action);
@@ -387,7 +393,12 @@ export class Controller {
     if (!this.index || this.index.cubes !== this.cubes) this.updateIndex();
     const group = this.refreshControls();
     this.view.beamSegments=traceBeams(this.mechanisms,this.cubes,this.player?this.activeFlags:this.mechanisms?.flags).segments;
-    this.view.update(this.cubes,group.map(cube => cube.id),this.spacing,animate);
+    const effects=visualEffects(this.player?this.mechanisms:null,this.cubes,this.activeFlags??[]);
+    this.renderCubes=effects.cubes;
+    this.view.lampPositions=effects.lamps;
+    this.view.visibleZones=(this.mechanisms?.zones??[]).filter(zone=>zone.color);
+    this.view.beamColor=effects.beamColor;
+    this.view.update(this.renderCubes,group.map(cube => cube.id),this.spacing,animate);
     if(this.view.animating){
       for(const {button} of [...this.rotationButtons,...this.moveButtons])button.disabled=true;
       this.swapButton.disabled=true;
@@ -420,7 +431,7 @@ export class Controller {
     const snapped = Math.max(spacing.min,Math.min(spacing.max,spacing.min+Math.round((value-spacing.min)/spacing.step)*spacing.step));
     this.spacing = this.spacing.map((old,i) => (index < 0 ? this.available.gapAxes.includes(AXES[i]) : i === index) ? snapped : old);
     this.syncSpacing();
-    this.view.update(this.cubes,this.group().map(cube => cube.id),this.spacing);
+    this.view.update(this.renderCubes??this.cubes,this.group().map(cube => cube.id),this.spacing);
     return true;
   }
 
@@ -469,7 +480,7 @@ export class Controller {
   }
 
   lightState() { return [+this.control('az').value,+this.control('el').value,this.control('shadows').checked]; }
-  snapshot() { return {cubes:structuredClone(this.cubes),spacing:[...this.spacing],selected:this.selected,multiple:[...this.multiple],light:this.lightState(),lighting:this.lightingEquipment(),activeFlags:[...(this.activeFlags??[])],extra:this.captureExtra?.()}; }
+  snapshot() { return {cubes:structuredClone(this.cubes),spacing:[...this.spacing],selected:this.selected,multiple:[...this.multiple],light:this.lightState(),lighting:this.lightingEquipment(),gameState:structuredClone(this.gameState),extra:this.captureExtra?.()}; }
   checkpoint() { this.history.record(this.snapshot()); this.updateHistory(); }
 
   updateHistory() {
@@ -489,7 +500,8 @@ export class Controller {
   restore(state) {
     if (!state) return;
     this.cubes = state.cubes;
-    this.activeFlags=state.activeFlags??[];
+    this.gameState=state.gameState;
+    this.activeFlags=this.gameState?.active??[];
     this.selected = state.selected;
     this.multiple = state.multiple;
     this.setSpacing(state.spacing);
@@ -507,7 +519,7 @@ export class Controller {
 
   replace(cubes) {
     this.cubes = structuredClone(cubes);
-    if(this.player)this.activeFlags=mechanismStep(this.mechanisms,this.cubes).active;
+    if(this.player)this.advanceMechanisms();
     this.selected = null;
     this.multiple = [];
     this.swap = false;

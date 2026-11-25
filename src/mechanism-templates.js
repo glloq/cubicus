@@ -12,6 +12,7 @@ export const templateInstructions={
   fresco:'Reconstituez le motif circulaire sur les quatre faces avant. Permutez les tuiles et corrigez leur orientation.',
   window:'Libérez la vue à travers la fenêtre et observez la face derrière le passage.',
   double:'Orientez les deux miroirs pour faire passer le faisceau par les relais jusqu’au capteur. Déplacez ensuite le verrou.',
+  logicDoor:'Occupez les deux plaques, puis tournez le cadran deux fois dans le sens positif sans tourner un autre cube. Déplacez la porte.',
   switched:'Activez la source avec le commutateur. Réorientez-le une nouvelle fois pour valider le contact optique, puis déplacez le verrou.'
 };
 
@@ -19,6 +20,35 @@ export function mechanismTemplate(kind) {
   const make=p=>cube(p);
   const controls=controlRules({version:2,rotation:{axes:['Z']},
     movement:{swap:false},lighting:{direction:false,shadows:false}});
+  if(kind==='logicDoor'){
+    const cubes=[make([0,0,0]),make([0,2,0]),make([0,4,0]),make([3,4,0])];
+    const [a,b,dial,door]=cubes.map(cube=>cube.id);
+    cubes[0].constraints={slots:[[0,0,0],[1,0,0]]};
+    cubes[1].constraints={slots:[[0,2,0],[1,2,0]]};
+    const plates=[{kind:'zone',id:'plaque_a',cube:a},{kind:'zone',id:'plaque_b',cube:b}];
+    const all=(...items)=>({mode:'all',items});
+    return {cubes,controls,mechanisms:{version:1,
+      flags:['porte','voyant_a','voyant_b'],counters:[{id:'tours',initial:0}],
+      zones:[{id:'plaque_a',from:[1,0,0],to:[1,0,0],color:'#79dada'},{id:'plaque_b',from:[1,2,0],to:[1,2,0],color:'#e3acff'}],
+      gates:[{cube:door,flag:'porte'}],
+      visuals:[{kind:'lamp',cube:a,flag:'voyant_a',color:'#93fb75'},{kind:'lamp',cube:b,flag:'voyant_b',color:'#93fb75'},
+        {kind:'lamp',cube:door,flag:'porte',color:'#91e9ff'}],
+      rules:[
+        ...plates.flatMap((plate,i)=>{
+          const set=i?'voyant_b':'voyant_a';
+          return [{event:'enter',zone:plate.id,cube:plate.cube,set},
+            {event:'leave',zone:plate.id,cube:plate.cube,set,value:false}];
+        }),
+        {event:'turn',cube:dial,axis:'Z',sign:1,when:all(...plates),counter:{id:'tours',op:'add',value:1}},
+        {event:'turn',cube:dial,axis:'Z',sign:1,when:all(...plates,{kind:'counter',id:'tours',op:'eq',value:1}),set:'porte'},
+        {event:'turn',when:all({kind:'actor',id:dial,not:true}),counter:{id:'tours',op:'set',value:0},set:'porte',value:false},
+        {event:'turn',cube:dial,axis:'Z',sign:-1,counter:{id:'tours',op:'set',value:0},set:'porte',value:false},
+        {event:'tick',when:{mode:'any',items:plates.map(plate=>({...plate,not:true}))},
+          counter:{id:'tours',op:'set',value:0},set:'porte',value:false}
+      ]},proof:[{type:'step',ids:[a],axis:'X',sign:1},{type:'step',ids:[b],axis:'X',sign:1},
+      {type:'rotate',ids:[dial],axis:'Z',sign:1},{type:'rotate',ids:[dial],axis:'Z',sign:1},
+      {type:'step',ids:[door],axis:'Y',sign:1}]};
+  }
   if(kind==='sequence'){
     const cubes=[make([0,0,0]),make([1,0,0]),make([2,0,0])];
     const [a,b,c]=cubes.map(cube=>cube.id);

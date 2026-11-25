@@ -123,21 +123,32 @@ q('test').onclick = async () => {
 
 const playtest = q('playtest');
 const playtestFrame = q('playtestFrame');
+let playtestRequest=0;
 async function reloadPlaytest() {
-  q('reloadPlaytest').disabled = true;
+  const request=++playtestRequest;
+  q('playtestStatus').textContent='';
+  q('reloadPlaytest').disabled = q('testInline').disabled = true;
   try {
-    playtestFrame.src = await testUrl();
+    const url=await testUrl();
+    if(request!==playtestRequest)return;
+    playtestFrame.src=url;
     if (!playtest.open) playtest.showModal();
   } catch (error) {
-    if (playtest.open) playtest.close();
-    status(error.message);
+    if(request!==playtestRequest)return;
+    if(playtest.open)q('playtestStatus').textContent=error.message;
+    else status(error.message);
   } finally {
-    q('reloadPlaytest').disabled = false;
+    if(request===playtestRequest)q('reloadPlaytest').disabled = q('testInline').disabled = false;
   }
 }
 q('testInline').onclick = q('reloadPlaytest').onclick = reloadPlaytest;
 q('closePlaytest').onclick = () => playtest.close();
-playtest.onclose = () => { playtestFrame.src = 'about:blank'; };
+playtest.onclose = () => {
+  playtestRequest++;
+  q('reloadPlaytest').disabled = q('testInline').disabled = false;
+  q('playtestStatus').textContent='';
+  playtestFrame.src='about:blank';
+};
 const net=q('net');for(const [i,col,row] of [[2,2,1],[1,1,2],[4,2,2],[0,3,2],[5,4,2],[3,2,3]]){const b=document.createElement('button');b.style.gridColumn=col;b.style.gridRow=row;b.dataset.face=i;b.title=q('face').options[i].text;b.onclick=()=>{q('face').value=i;layerIndex=0;loadFace()};net.append(b)}
 function refreshNet(){for(const b of q('net').children){const i=+b.dataset.face,f=selected()?.faces[i];b.style.backgroundImage=f?'url("'+f+'")':'none';b.textContent=q('face').options[i].text;b.classList.toggle('active',i===+q('face').value)}}
 function refreshLibrary(){q('library').replaceChildren(...library.map((c,i)=>new Option('Modèle '+(i+1),i)))}
@@ -180,15 +191,17 @@ function refreshControlsEditor(){
       status('Assemblage modifié pendant l’enregistrement. Parcours annulé.');
     }
     let removed=false;
-    for(const key of ['rules','gates','optics','joins']){
+    for(const key of ['rules','gates','optics','joins','visuals']){
       const entries=mechanisms[key]??[];
-      const retained=entries.filter(entry=>ids.has(entry.cube)&&(!entry.other||ids.has(entry.other)));
+      const retained=entries.filter(entry=>(!entry.cube||ids.has(entry.cube))&&(!entry.other||ids.has(entry.other))&&
+        (entry.when?.items??[]).every(condition=>(!['receiver','actor'].includes(condition.kind)||ids.has(condition.id))&&(!condition.cube||ids.has(condition.cube))));
       if(retained.length!==entries.length){
         mechanisms[key]=retained;
         removed=true;
       }
     }
     if(removed){
+      mechanismEditor.resetDraft();
       ctl.configureMechanisms(mechanisms);
       ctl.draw();
     }
@@ -522,6 +535,7 @@ projects = bindProjects({
     recording=false;
     proofStart=undefined;
     mechanismEditor.stop();
+    mechanismEditor.resetDraft();
     ctl.configureMechanisms(mechanisms);
     q('mixSeed').value=project.mixSeed;
     controlEditor.resetProfile();
@@ -726,6 +740,7 @@ mechanismEditor=bindMechanismEditor({
     recording=false;
     proofStart=undefined;
     mechanismEditor.stop();
+    mechanismEditor.resetDraft();
     ctl.configureMechanisms(mechanisms);
     ctl.replace(sample.cubes);
     ctl.selected=ctl.cubes[0].id;
@@ -744,6 +759,7 @@ mechanismEditor=bindMechanismEditor({
       scheduleDraft();
     }
     q('proofReport').textContent='';
+    q('logicJournal').textContent='';
     status('Modèle chargé. Ouvrez Tester ici pour jouer.');
   },
   record(){
@@ -779,11 +795,14 @@ mechanismEditor=bindMechanismEditor({
   verify(){
     try{
       const result=replayProof(ctl.cubes,rules,mechanismConfig(mechanisms,ctl.cubes),proof);
+      q('logicJournal').textContent=result.journal.flatMap(({step,entries})=>entries.map(entry=>
+        (step?'Action '+step:'Départ')+' · règle '+entry.rule+' · '+(entry.matched?'appliquée':'conditions non remplies')+
+        (entry.conditions.length?' ('+entry.conditions.map(value=>value?'oui':'non').join(', ')+')':''))).join('\n');
       q('proofReport').textContent=result.failed ? 'Action '+result.failed+' interdite.'
         : result.completed ? result.completed+' actions autorisées depuis le départ.'+(result.active.length?' États atteints : '+result.active.join(', ')+'.':'') : 'Aucune action à vérifier.';
-    }catch(error){q('proofReport').textContent=error.message;}
+    }catch(error){q('logicJournal').textContent='';q('proofReport').textContent=error.message;}
   },
-  clearProof(){proof=[];q('proofReport').textContent='';scheduleDraft();}
+  clearProof(){proof=[];q('logicJournal').textContent='';q('proofReport').textContent='';scheduleDraft();}
 });
 ctl.onAction=action=>{
   if(recording&&proof.length<500)proof.push(structuredClone(action));
@@ -792,6 +811,7 @@ mechanismEditor.refresh();
 
 function decorateTemplate(cubes,kind){
   const labels={
+    logicDoor:['PLAQUE A','PLAQUE B','CADRAN','PORTE'],
     sequence:['A','B','VERROU'], rails:['NAVETTE','AIGUILLE','BARRAGE'], mirrors:['SOURCE','MIROIR','CAPTEUR','VERROU'],
     contact:['CONTACT','BORNE','VERROU'], connectors:['PRISE','CONNECTEUR'], hinge:['PIVOT','BRAS','BARRAGE'],
     fresco:['TUILE','TUILE','TUILE','TUILE'], window:['FENÊTRE','VOLET','TRACE'],

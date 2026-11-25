@@ -1,4 +1,5 @@
 export const tutorialTopics = {
+  logic: ['Conditions, zones et compteurs', 'Une action peut avancer ou réinitialiser une séquence. Des voyants ou des faces peuvent changer quand une condition est remplie.'],
   states: ['États et verrous', 'Une manipulation peut activer un état et rendre une pièce manipulable. Repérez les fragments qui se déverrouillent.'],
   contacts: ['Contacts de faces', 'Deux faces compatibles doivent se toucher et se faire face.'],
   connectors: ['Connecteurs', 'Deux pièces reliées se déplacent ensemble. Utilisez la sélection de groupe si elle est disponible.'],
@@ -20,6 +21,7 @@ export function publicTutorial(value) {
 
 export function topicsFor(cubes, mechanisms, authored) {
   const topics = new Set(publicTutorial(authored));
+  if (mechanisms?.counters?.length || mechanisms?.zones?.length) topics.add('logic');
   if (mechanisms?.gates.length || mechanisms?.rules.length) topics.add('states');
   if (mechanisms?.rules.some(rule => rule.event === 'contact')) topics.add('contacts');
   if (mechanisms?.joins.length) topics.add('connectors');
