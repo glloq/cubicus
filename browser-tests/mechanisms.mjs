@@ -18,8 +18,7 @@ try{
   });
   await page.goto(base+'/studio.html');
   await page.locator('#view > canvas').waitFor();
-  await page.locator('.studio-tabs [data-stage=prepare]').click();
-  await page.locator('#mechanismPanel > summary').click();
+  await page.locator('.studio-tabs [data-stage=mechanisms]').click();
   await page.locator('#mechanismTemplate').selectOption('sequence');
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('#loadMechanismTemplate').click();
@@ -92,7 +91,7 @@ try{
     const {data}=document.querySelector('#paint').getContext('2d').getImageData(256,256,1,1);
     return data[0]===204&&data[1]===34&&data[2]===51;
   });
-  await page.locator('.studio-tabs [data-stage=prepare]').click();
+  await page.locator('.studio-tabs [data-stage=mechanisms]').click();
   for(const option of ['rails','mirrors','contact','connectors','hinge','fresco','window','double','switched']){
     await page.locator('#mechanismTemplate').selectOption(option);
     page.once('dialog',dialog=>dialog.accept());

@@ -2,10 +2,12 @@ const stages = {
   assembly: ['Assemblage', 'Construisez la grille et organisez les fragments.'],
   faces: ['Cubes et faces', 'Sélectionnez un cube dans la scène, puis ouvrez son dessin, sa matière ou son volume.'],
   optics: ['Optique', 'Créez une lecture par image, transparence, lumière ou géométrie.'],
+  mechanisms: ['Mécanismes', 'Définissez ce que les manipulations déclenchent.'],
   prepare: ['Préparer l’énigme', 'Définissez le départ du joueur, testez les règles et contrôlez l’export.']
 };
 
 const paths = [
+  ['Commencer avec une serrure', 'mechanisms', null, '#mechanismTemplate', 'Chargez un modèle pour voir comment une manipulation peut déverrouiller un cube.'],
   ['Cube illustré', 'faces', 'drawing', '#brush', 'Dessinez ou importez un motif sur les faces du cube.'],
   ['Fresque à reconstituer', 'optics', null, '#mural', 'Découpez l’image, puis mélangez les fragments dans Préparer.'],
   ['Anamorphose', 'optics', null, '#projectionImage', 'Cadrez la lecture dans la scène avant de projeter l’image.'],
@@ -60,6 +62,7 @@ export function bindWorkspace({resize, state}) {
     document.querySelector('[data-inspector="drawing"]').focus({preventScroll:true});
   };
   for (const button of stageButtons) button.onclick = () => showStage(button.dataset.stage);
+  for (const button of document.querySelectorAll('[data-open-stage]')) button.onclick = () => showStage(button.dataset.openStage);
   for (const button of inspectorButtons) button.onclick = () => showInspector(button.dataset.inspector);
   for (const [label, stage, inspector, selector, instruction] of paths) {
     const button = document.createElement('button');

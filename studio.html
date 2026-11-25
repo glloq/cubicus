@@ -19,7 +19,8 @@
   <button data-stage="assembly" class="active"><span aria-hidden="true">01</span> Assemblage</button>
   <button data-stage="faces"><span aria-hidden="true">02</span> Cubes et faces</button>
   <button data-stage="optics"><span aria-hidden="true">03</span> Optique</button>
-  <button data-stage="prepare"><span aria-hidden="true">04</span> Préparer</button>
+  <button data-stage="mechanisms"><span aria-hidden="true">04</span> Mécanismes</button>
+  <button data-stage="prepare"><span aria-hidden="true">05</span> Préparer</button>
 </nav>
 <main class="layout studio-layout" data-stage="assembly"><aside class="workflow-panel" aria-label="Réglages de création">
 <div class="panel-heading"><h1 id="stageTitle">Assemblage</h1><p id="stageDescription">Construisez et organisez les fragments.</p></div>
@@ -58,12 +59,17 @@
 <label>ΔY <input type="number" id="groupOffsetY" value="0" min="-200" max="200"></label>
 <label>ΔZ <input type="number" id="groupOffsetZ" value="0" min="-200" max="200"></label>
 <button id="translateGroup">Translater</button><button id="duplicateGroup">Copier vers le décalage</button>
-</details><details><summary>Contraintes publiques de la sélection</summary><div id="cubeConstraints"></div></details><details><summary>Groupes définis</summary><div id="groupEditor"></div></details></div><div data-panel="prepare"><details id="mechanismPanel"><summary>Mécanismes et parcours de test</summary>
+</details><details><summary>Contraintes publiques de la sélection</summary><div id="cubeConstraints"></div></details><details><summary>Groupes définis</summary><div id="groupEditor"></div></details></div><div data-panel="mechanisms" id="mechanismPanel" hidden>
+<section class="mechanism-start" aria-label="Démarrer un mécanisme">
+<button id="newRule" class="primary">Créer une règle</button>
+<button id="quickUnlock">Créer un verrou par rotation</button>
+<details open><summary>Partir d’un modèle</summary>
 <label>Modèle <select id="mechanismTemplate"><option value="sequence">Serrure à séquence</option><option value="logicDoor">Porte à deux plaques et compteur</option><option value="rails">Labyrinthe sur rails</option><option value="mirrors">Circuit de miroirs</option><option value="contact">Contact et verrou</option>
 <option value="connectors">Connecteurs solidaires</option><option value="hinge">Bras à charnière</option>
 <option value="fresco">Fresque à reconstituer</option><option value="window">Fenêtre traversante</option>
 <option value="double">Deux réflexions</option><option value="switched">Source commutée</option></select></label>
-<button id="loadMechanismTemplate">Charger le modèle</button>
+<p id="templateDescription"></p><button id="loadMechanismTemplate">Charger le modèle</button></details>
+</section><details><summary>Composants et réglages avancés</summary>
 <details><summary>États et verrous</summary>
 <label>Nom d’état <input id="flagName" maxlength="40"></label><button id="addFlag">Ajouter un état</button>
 <label>Cube <select id="gateCube"></select></label><label>État de déverrouillage <select id="gateFlag"></select></label>
@@ -85,28 +91,6 @@
 <label id="visualFaceField" hidden>Face <select id="visualFace"></select></label>
 <label id="visualColorField">Couleur <input id="visualColor" type="color" value="#9dff72"></label>
 <button id="addVisual">Ajouter l’effet visuel</button></details>
-<details id="ruleEditor"><summary>Règles d’interaction</summary>
-<label>Événement <select id="ruleEvent"><option value="turn">Rotation</option><option value="move">Déplacement</option><option value="contact">Contact des faces</option><option value="beam">Capteur éclairé</option><option value="tick">Au départ et après chaque action</option><option value="enter">Entrée dans une zone</option><option value="leave">Sortie d’une zone</option></select></label>
-<label id="ruleCubeField">Cube <select id="ruleCube"></select></label><label id="ruleZoneField" hidden>Zone <select id="ruleZone"></select></label>
-<div id="rotationFields"><label>Axe <select id="ruleAxis"><option value="">Tous</option><option>X</option><option>Y</option><option>Z</option></select></label>
-<label>Sens <select id="ruleSign"><option value="0">Tous</option><option value="1">Positif</option><option value="-1">Négatif</option></select></label></div>
-<div id="contactFields" hidden><label>Face locale <select id="ruleFace"></select></label><label>Autre cube <select id="ruleOther"></select></label><label>Sa face locale <select id="ruleOtherFace"></select></label></div>
-<label>État requis <select id="ruleNeeds"></select></label>
-<label>État à modifier <select id="ruleSet"></select></label><label><input id="ruleValue" type="checkbox" checked> Activer cet état</label>
-<details id="advancedConditions"><summary>Conditions combinées et effet de compteur</summary>
-<label>Combinaison <select id="conditionMode"><option value="all">ET · toutes</option><option value="any">OU · au moins une</option></select></label>
-<label>Condition <select id="conditionKind"><option value="flag">État actif</option><option value="counter">Compteur</option><option value="zone">Zone occupée</option><option value="receiver">Capteur éclairé</option><option value="actor">Cube impliqué dans l’action</option></select></label>
-<label>Cible <select id="conditionTarget"></select></label>
-<label id="conditionCubeField" hidden>Occupant de la zone <select id="conditionCube"></select></label>
-<div id="conditionNumberFields" hidden><label>Comparaison <select id="conditionOp"><option value="eq">Égale à</option><option value="gte">Au moins</option><option value="lte">Au plus</option></select></label>
-<label>Valeur <input id="conditionValue" type="number" min="-9999" max="9999" value="1"></label></div>
-<label><input id="conditionNot" type="checkbox"> NON · inverser la condition</label>
-<button id="addCondition">Ajouter la condition</button><ol id="conditionDraft"></ol>
-<label>Modifier le compteur <select id="ruleCounter"></select></label>
-<label>Opération <select id="ruleCounterOp"><option value="add">Ajouter</option><option value="set">Fixer</option></select></label>
-<label>Valeur <input id="ruleCounterValue" type="number" min="-9999" max="9999" value="1"></label></details>
-<button id="addRule">Ajouter la règle</button><button id="resetRuleDraft">Réinitialiser le brouillon</button>
-</details>
 <details><summary>Connecteurs de faces</summary>
 <label>Cube <select id="joinCube"></select></label><label>Face <select id="joinFace"></select></label>
 <label>Autre cube <select id="joinOther"></select></label><label>Sa face <select id="joinOtherFace"></select></label>
@@ -117,7 +101,11 @@
 <label>Cube <select id="deviceCube"></select></label><label>Face locale <select id="deviceFace"></select></label>
 <label id="emitterFields">État d’activation <select id="deviceFlag"></select></label><label id="mirrorFields" hidden>Seconde face locale <select id="deviceExit"></select></label><button id="addDevice">Ajouter le dispositif</button>
 </details>
-<output id="opticalReport"></output><ul id="mechanismList"></ul><details><summary>Dupliquer un module de règles</summary>
+<output id="opticalReport"></output></details>
+<section aria-label="Mécanismes du projet"><h2>Mécanismes du projet</h2><label>Afficher <select id="mechanismFilter">
+<option value="all">Tout</option><option value="rules">Règles</option><option value="components">États, compteurs et zones</option>
+<option value="effects">Verrous, connecteurs et effets</option></select></label>
+<p id="mechanismEmpty"></p><ul id="mechanismList"></ul></section><details><summary>Dupliquer un module de règles</summary>
 <p>Cochez les règles à réutiliser, puis raccordez leurs cubes. Les états, compteurs et zones de la copie reçoivent un préfixe distinct.</p>
 <label>Préfixe <input id="modulePrefix" maxlength="32"></label>
 <label>Décalage des zones (X,Y,Z) <input id="moduleOffset" value="0,0,0"></label>
@@ -127,7 +115,7 @@
 <button id="recordProof" aria-pressed="false">Enregistrer les actions de manipulation</button>
 <button id="verifyProof">Vérifier le parcours depuis le départ</button><button id="clearProof">Vider le parcours</button>
 <output id="proofReport" aria-live="polite"></output><pre id="logicJournal"></pre></details>
-</details>
+</div><div data-panel="prepare" hidden><button data-open-stage="mechanisms" type="button">Configurer les mécanismes</button>
 <section class="publish-check" aria-labelledby="publishTitle"><h2 id="publishTitle">Vérification avant export</h2><p id="publishSummary"></p><button id="auditProject">Contrôler l’export</button><pre id="auditResult" aria-live="polite"></pre></section><label>Consigne publique <textarea id="publicInstructions" maxlength="500"></textarea></label><details><summary>Thèmes du tutoriel</summary><p>Ajoutez les effets visuels à expliquer à l’ouverture. Les mécanismes de jeu sont également détectés automatiquement.</p><fieldset id="tutorialTopics"><legend>Effets et mécanismes publics</legend></fieldset></details><h2>Configuration initiale</h2><label><input id="shufflePos" type="checkbox" checked> Positions</label><label><input id="shuffleRot" type="checkbox" checked> Orientations</label><label>Nombre d’opérations <input id="mixSteps" type="number" min="1" max="200" value="20"></label>
 <fieldset id="mixAxes"><legend>Axes de rotation du mélange</legend>
 <label><input type="checkbox" value="X" checked> X</label><label><input type="checkbox" value="Y" checked> Y</label><label><input type="checkbox" value="Z" checked> Z</label>
@@ -192,7 +180,35 @@
 <label>Premier coin <input id="volumeRegionStart" value="1,1,1"></label><label>Dernier coin <input id="volumeRegionEnd" value="2,2,2"></label>
 <button id="volumeFillRegion">Remplir la région</button><button id="volumeCutRegion">Évider la région</button>
 </fieldset>
-</details></section></aside></main><dialog id="imageImport" aria-label="Transformer l’image">
+</details></section></aside></main><dialog id="ruleEditor" aria-labelledby="ruleEditorTitle">
+<header class="rule-dialog-header"><div><h2 id="ruleEditorTitle">Créer une règle</h2><p id="ruleStepLabel"></p></div><button type="button" id="closeRuleEditor" aria-label="Fermer l’éditeur">Fermer</button></header>
+<div class="rule-dialog-body">
+<section data-rule-step="0"><h3>Quand la règle se déclenche-t-elle ?</h3><label id="ruleEventField">Événement <select id="ruleEvent"><option value="turn">Rotation</option><option value="move">Déplacement</option><option value="contact">Contact des faces</option><option value="beam">Capteur éclairé</option><option value="tick">Au départ et après chaque action</option><option value="enter">Entrée dans une zone</option><option value="leave">Sortie d’une zone</option></select></label>
+<label id="ruleCubeField"><span id="ruleCubeLabel">Cube</span> <select id="ruleCube"></select></label><label id="ruleZoneField" hidden>Zone <select id="ruleZone"></select></label>
+<div id="rotationFields"><label>Axe <select id="ruleAxis"><option value="">Tous</option><option>X</option><option>Y</option><option>Z</option></select></label>
+<label>Sens <select id="ruleSign"><option value="0">Tous</option><option value="1">Positif</option><option value="-1">Négatif</option></select></label></div>
+<div id="contactFields" hidden><label>Face locale <select id="ruleFace"></select></label><label>Autre cube <select id="ruleOther"></select></label><label>Sa face locale <select id="ruleOtherFace"></select></label></div>
+</section>
+<section data-rule-step="1" hidden><h3>Quelles conditions doivent être remplies ?</h3><p>Cette étape est facultative. Sans condition, l’événement seul suffit.</p><label>État requis <select id="ruleNeeds"></select></label>
+<label>Combinaison <select id="conditionMode"><option value="all">ET · toutes</option><option value="any">OU · au moins une</option></select></label>
+<label>Condition <select id="conditionKind"><option value="flag">État actif</option><option value="counter">Compteur</option><option value="zone">Zone occupée</option><option value="receiver">Capteur éclairé</option><option value="actor">Cube impliqué dans l’action</option></select></label>
+<label>Cible <select id="conditionTarget"></select></label>
+<label id="conditionCubeField" hidden>Occupant de la zone <select id="conditionCube"></select></label>
+<div id="conditionNumberFields" hidden><label>Comparaison <select id="conditionOp"><option value="eq">Égale à</option><option value="gte">Au moins</option><option value="lte">Au plus</option></select></label>
+<label>Valeur <input id="conditionValue" type="number" min="-9999" max="9999" value="1"></label></div>
+<label><input id="conditionNot" type="checkbox"> NON · inverser la condition</label>
+<button id="addCondition">Ajouter la condition</button><ol id="conditionDraft"></ol>
+</section>
+<section data-rule-step="2" hidden><h3>Que doit-il se passer ?</h3><div id="customRuleEffects"><label>État existant à modifier <select id="ruleSet"></select></label><label><input id="ruleValue" type="checkbox" checked> Activer cet état</label>
+<label>Modifier le compteur <select id="ruleCounter"></select></label>
+<label>Opération <select id="ruleCounterOp"><option value="add">Ajouter</option><option value="set">Fixer</option></select></label>
+<label>Valeur <input id="ruleCounterValue" type="number" min="-9999" max="9999" value="1"></label>
+<label>Ou créer un état <input id="ruleNewFlag" maxlength="40" placeholder="Ex. porte_ouverte"></label></div>
+<label><span id="ruleGateLabel">Déverrouiller un cube quand cet état est actif</span> <select id="ruleGateTarget"></select></label>
+</section>
+<p id="rulePreview"></p><p id="ruleError" role="alert"></p></div>
+<footer class="rule-dialog-actions"><button id="resetRuleDraft" type="button">Annuler</button><button id="previousRuleStep" type="button">Retour</button><button id="nextRuleStep" type="button" class="primary">Continuer</button><button id="addRule" type="button" class="primary" hidden>Enregistrer la règle</button></footer>
+</dialog><dialog id="imageImport" aria-label="Transformer l’image">
 <form id="imageTransform">
 <canvas id="imagePreview" width="512" height="512"></canvas>
 <label>Cadrage <select id="importFit"><option value="fit">Ajuster</option><option value="fill">Remplir</option></select></label>

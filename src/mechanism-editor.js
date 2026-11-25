@@ -1,9 +1,10 @@
+import {templateInstructions} from './mechanism-templates.js';
 import {duplicateLogicModule,moduleCubes,selectLogicModule} from './mechanism-module.js';
 import {mechanismConfig,traceBeams} from './mechanisms.js';
 
 export const emptyMechanisms = () => ({version:1,flags:[],rules:[],gates:[],optics:[],joins:[],counters:[],zones:[],visuals:[]});
 
-export function bindMechanismEditor({read,write,cubes,template,record,verify,clearProof,proofLength,status}) {
+export function bindMechanismEditor({read,write,cubes,selected,template,record,verify,clearProof,proofLength,status}) {
   const q=id=>document.getElementById(id);
   const fill=(id,options)=>{
     const input=q(id), previous=input.value;
@@ -12,6 +13,58 @@ export function bindMechanismEditor({read,write,cubes,template,record,verify,cle
   };
   let draft=[];
   let editingIndex=null;
+  const dialog=q('ruleEditor');
+  const stepNames=['Événement','Conditions','Effets'];
+  let step=0;
+  let quick=false;
+  function error(message){
+    if(dialog.open)q('ruleError').textContent=message;
+    else status(message);
+  }
+  function preview(){
+    const label=id=>q(id).selectedOptions[0]?.textContent??'';
+    const effect=q('ruleNewFlag').value.trim()||q('ruleSet').value;
+    const counter=q('ruleCounter').value;
+    const when=label('ruleEvent');
+    const cube=q('ruleCubeField').hidden?'':label('ruleCube');
+    const zone=q('ruleZoneField').hidden?'':label('ruleZone');
+    const required=q('ruleNeeds').value;
+    const group=draft.length?draft.length+' condition'+(draft.length>1?'s':'')+' ('+(q('conditionMode').value==='all'?'ET':'OU')+')':null;
+    const results=[
+      effect?(q('ruleValue').checked?'Activer ':'Désactiver ')+effect:'',
+      counter?'Modifier '+counter:'',
+      q('ruleGateTarget').value?'Déverrouiller '+label('ruleGateTarget'):''
+    ].filter(Boolean);
+    q('rulePreview').textContent=[[when,cube,zone].filter(Boolean).join(' · '),required?'État requis : '+required:'',group,results.join(' · ')].filter(Boolean).join(' → ');
+  }
+  function showStep(index,focus=true){
+    step=index;
+    q('ruleStepLabel').textContent=stepNames[index]+' · '+(quick?(index===0?'1 / 2':'2 / 2'):(index+1)+' / '+stepNames.length);
+    for(const section of dialog.querySelectorAll('[data-rule-step]'))section.hidden=Number(section.dataset.ruleStep)!==index;
+    q('previousRuleStep').hidden=index===0;
+    q('nextRuleStep').hidden=index===2;
+    q('addRule').hidden=index!==2;
+    q('ruleError').textContent='';
+    preview();
+    if(focus)[...dialog.querySelectorAll('[data-rule-step="'+index+'"] :is(select,input)')].find(input=>!input.closest('[hidden]'))?.focus();
+  }
+  function openEditor(rule,index,shortcut=false){
+    quick=shortcut;
+    loadDraft(rule,index);
+    q('ruleEditorTitle').textContent=shortcut?'Créer un verrou par rotation':index===null?'Créer une règle':'Modifier la règle';
+    q('ruleEventField').hidden=shortcut;
+    q('customRuleEffects').hidden=shortcut;
+    q('ruleCubeLabel').textContent=shortcut?'Cube à tourner':'Cube';
+    q('ruleGateLabel').textContent=shortcut?'Cube à libérer':'Déverrouiller un cube quand cet état est actif';
+    if(shortcut){
+      let number=1;
+      while(read().flags.includes('verrou_'+number))number++;
+      q('ruleNewFlag').value='verrou_'+number;
+      q('ruleGateTarget').value=cubeOptions().find(([id])=>id!==q('ruleCube').value)?.[0]??'';
+    }
+    if(!dialog.open)dialog.showModal();
+    showStep(0);
+  }
   const moduleSelection=new Set();
   let module;
   function clearModule(){
@@ -45,7 +98,7 @@ export function bindMechanismEditor({read,write,cubes,template,record,verify,cle
       row.textContent=(item.not?'NON · ':'')+label+' · '+target+suffix+' ';
       const remove=document.createElement('button');
       remove.textContent='Retirer';
-      remove.onclick=()=>{draft.splice(index,1);showDraft();};
+      remove.onclick=()=>{draft.splice(index,1);showDraft();preview();};
       row.append(remove);
       return row;
     }));
@@ -63,7 +116,10 @@ export function bindMechanismEditor({read,write,cubes,template,record,verify,cle
     q('ruleEvent').onchange();
     draft=structuredClone(rule.when?.items??[]);
     showDraft();
-    q('addRule').textContent=index===null?'Ajouter la règle':'Enregistrer la règle';
+    q('ruleNewFlag').value='';
+    q('ruleGateTarget').value='';
+    q('addRule').textContent='Enregistrer la règle';
+    preview();
   }
   function validateAndWrite(next){
     try{
@@ -72,7 +128,7 @@ export function bindMechanismEditor({read,write,cubes,template,record,verify,cle
       write(clean);
       refresh();
       return true;
-    }catch(error){status(error.message);return false;}
+    }catch(failure){error(failure.message);return false;}
   }
   function refresh(){
     const list=cubeOptions();
@@ -83,6 +139,7 @@ export function bindMechanismEditor({read,write,cubes,template,record,verify,cle
     fill('ruleSet',[['','Aucun effet sur un état'],...flags]);
     fill('ruleCounter',[['','Aucun effet sur un compteur'],...named(read().counters)]);
     fill('ruleZone',named(read().zones));
+    fill('ruleGateTarget',[['','Aucun cube'],...list]);
     for(const id of ['ruleNeeds','deviceFlag'])fill(id,[['','Toujours'],...flags]);
     for(const id of ['ruleFace','ruleOtherFace','deviceFace','deviceExit','joinFace','joinOtherFace','visualFace'])if(!q(id).options.length){
       fill(id,['+X','−X','+Y','−Y','+Z','−Z'].map((face,i)=>[i,face]));
@@ -92,9 +149,13 @@ export function bindMechanismEditor({read,write,cubes,template,record,verify,cle
     const names=new Map(list);
     const name=id=>names.get(id)??'Cube absent';
     const cfg=read();
+    q('templateDescription').textContent=templateInstructions[q('mechanismTemplate').value]??'';
+    const filter=q('mechanismFilter').value;
     const output=q('mechanismList');
     output.replaceChildren();
     for(const [key,items] of Object.entries({flags:cfg.flags,rules:cfg.rules,gates:cfg.gates,optics:cfg.optics,joins:cfg.joins??[],counters:cfg.counters??[],zones:cfg.zones??[],visuals:cfg.visuals??[]})){
+      const category=key==='rules'?'rules':['flags','counters','zones'].includes(key)?'components':'effects';
+      if(filter!=='all'&&filter!==category)continue;
       items.forEach((item,index)=>{
         const row=document.createElement('li');
         if(key==='flags')row.textContent='État '+item+' ';
@@ -139,10 +200,7 @@ export function bindMechanismEditor({read,write,cubes,template,record,verify,cle
           const button=document.createElement('button');
           button.textContent=label;
           button.onclick=()=>{
-            q('ruleEditor').open=true;
-            q('advancedConditions').open=Boolean(item.when||item.counter);
-            loadDraft(item,edit?index:null);
-            q('ruleEvent').focus();
+            openEditor(item,edit?index:null);
           };
           row.append(button);
         }
@@ -162,6 +220,7 @@ export function bindMechanismEditor({read,write,cubes,template,record,verify,cle
         output.append(row);
       });
     }
+    q('mechanismEmpty').textContent=output.children.length?'':'Aucun élément dans cette vue.';
     const receiverCount=cfg.optics.filter(device=>device.kind==='receiver').length;
     const optics=traceBeams(cfg,cubes(),cfg.flags);
     q('opticalReport').textContent=cfg.optics.length?
@@ -178,7 +237,8 @@ export function bindMechanismEditor({read,write,cubes,template,record,verify,cle
     q('ruleCubeField').hidden=event==='tick';
     q('ruleZoneField').hidden=!['enter','leave'].includes(event);
     q('contactFields').hidden=q('ruleEvent').value!=='contact';
-    q('rotationFields').hidden=q('ruleEvent').value!=='turn';
+    q('rotationFields').hidden=event!=='turn';
+    preview();
   };
   q('deviceKind').onchange=()=>{
     q('mirrorFields').hidden=q('deviceKind').value!=='mirror';
@@ -186,17 +246,39 @@ export function bindMechanismEditor({read,write,cubes,template,record,verify,cle
   };
   q('addFlag').onclick=()=>{append('flags',q('flagName').value.trim());};
   q('addGate').onclick=()=>append('gates',{cube:q('gateCube').value,flag:q('gateFlag').value,positionOnly:q('gatePosition').checked});
+  q('newRule').onclick=()=>openEditor({cube:selected()},null);
+  q('quickUnlock').onclick=()=>{
+    if(cubes().length<2){status('Ajoutez un deuxième cube pour créer un verrou.');return;}
+    openEditor({event:'turn',cube:selected()||cubes()[0].id},null,true);
+  };
+  q('mechanismFilter').onchange=refresh;
+  q('mechanismTemplate').onchange=()=>{q('templateDescription').textContent=templateInstructions[q('mechanismTemplate').value]??'';};
   q('conditionKind').onchange=conditionTargets;
+  q('closeRuleEditor').onclick=q('resetRuleDraft').onclick=()=>dialog.close();
+  q('previousRuleStep').onclick=()=>showStep(quick?0:step-1);
+  q('nextRuleStep').onclick=()=>{
+    const event=q('ruleEvent').value;
+    if(step===0&&(['contact','beam'].includes(event)&&!q('ruleCube').value||
+      ['enter','leave'].includes(event)&&!q('ruleZone').value||quick&&!q('ruleCube').value)){
+      error('Choisissez le cube ou la zone qui déclenche la règle.');
+      return;
+    }
+    showStep(quick?2:step+1);
+  };
+  dialog.oninput=()=>{
+    q('ruleError').textContent='';
+    preview();
+  };
   q('addCondition').onclick=()=>{
     const kind=q('conditionKind').value;
     const id=q('conditionTarget').value;
-    if(!id||draft.length>=12){status('Choisissez une cible et limitez la règle à 12 conditions.');return;}
+    if(!id||draft.length>=12){error('Choisissez une cible et limitez la règle à 12 conditions.');return;}
     draft.push({kind,id,not:q('conditionNot').checked,
       ...(kind==='counter'?{op:q('conditionOp').value,value:Number(q('conditionValue').value)}:{}),
       ...(kind==='zone'&&q('conditionCube').value?{cube:q('conditionCube').value}:{})});
     showDraft();
+    preview();
   };
-  q('resetRuleDraft').onclick=()=>loadDraft();
   q('addRule').onclick=()=>{
     const rule={
       event:q('ruleEvent').value,cube:q('ruleCube').value,set:q('ruleSet').value,zone:q('ruleZone').value,
@@ -205,10 +287,28 @@ export function bindMechanismEditor({read,write,cubes,template,record,verify,cle
     };
     if(draft.length)rule.when={mode:q('conditionMode').value,items:draft};
     if(q('ruleCounter').value)rule.counter={id:q('ruleCounter').value,op:q('ruleCounterOp').value,value:Number(q('ruleCounterValue').value)};
-    if(editingIndex===null){if(append('rules',rule))loadDraft();return;}
     const next=structuredClone(read());
-    next.rules[editingIndex]=rule;
-    if(validateAndWrite(next))loadDraft();
+    const newFlag=q('ruleNewFlag').value.trim();
+    if(newFlag){
+      if(next.flags.includes(newFlag)){error('Cet état existe déjà. Sélectionnez-le dans la liste.');return;}
+      next.flags.push(newFlag);
+      rule.set=newFlag;
+    }
+    const gate=q('ruleGateTarget').value;
+    if(quick&&(!gate||!rule.cube||gate===rule.cube)){
+      error('Choisissez une pièce à déverrouiller différente du cube à tourner.');
+      return;
+    }
+    if(gate){
+      if(!rule.set||!rule.value){error('Pour déverrouiller un cube, choisissez un état à activer.');return;}
+      next.gates.push({cube:gate,flag:rule.set});
+    }
+    if(editingIndex===null)next.rules.push(rule);
+    else next.rules[editingIndex]=rule;
+    if(validateAndWrite(next)){
+      dialog.close();
+      status('Règle enregistrée.');
+    }
   };
   q('addCounter').onclick=()=>append('counters',{id:q('counterName').value.trim(),initial:Number(q('counterInitial').value)});
   q('addZone').onclick=()=>{
@@ -261,5 +361,5 @@ export function bindMechanismEditor({read,write,cubes,template,record,verify,cle
   q('recordProof').onclick=()=>{q('recordProof').setAttribute('aria-pressed',String(record()));};
   q('verifyProof').onclick=verify;
   q('clearProof').onclick=()=>{clearProof();refresh();};
-  return {refresh,resetDraft(){clearModule();loadDraft();},stop(){q('recordProof').setAttribute('aria-pressed','false');}};
+  return {refresh,resetDraft(){clearModule();if(dialog.open)dialog.close();loadDraft();},stop(){q('recordProof').setAttribute('aria-pressed','false');}};
 }

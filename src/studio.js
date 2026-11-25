@@ -715,7 +715,7 @@ q('translateGroup').onclick = () => shiftSelection(false);
 q('duplicateGroup').onclick = () => shiftSelection(true);
 
 mechanismEditor=bindMechanismEditor({
-  read:()=>mechanisms, cubes:()=>ctl.cubes, status, proofLength:()=>proof.length,
+  read:()=>mechanisms, cubes:()=>ctl.cubes, selected:()=>ctl.selected, status, proofLength:()=>proof.length,
   write(next){
     ctl.checkpoint();
     mechanisms=next;
