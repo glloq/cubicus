@@ -1,3 +1,4 @@
+import {svgBitmap} from './svg-import.js';
 export function bindImageImport({canApply, apply, status}) {
   const q = id => document.getElementById(id);
   const preview = q('imagePreview');
@@ -34,8 +35,9 @@ export function bindImageImport({canApply, apply, status}) {
     target = canApply();
     if (!target) return;
     try {
-      if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) throw new Error('Choisissez une image PNG, JPEG ou WebP.');
-      const decoded = await createImageBitmap(file);
+      const vector=file.type==='image/svg+xml'||(!file.type&&/\.svg$/i.test(file.name));
+      if (!vector&&!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) throw new Error('Choisissez une image PNG, JPEG, WebP ou SVG.');
+      const decoded = await (vector?svgBitmap(file):createImageBitmap(file));
       if (version !== revision) {
         decoded.close();
         return;

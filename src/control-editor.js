@@ -168,6 +168,10 @@ export function bindConstraints(host,{selected,checkpoint,changed,status}) {
     group.maxLength=80;
     group.value=limits.group??'';
     group.setAttribute('aria-label','Nom privé du groupe');
+    const pivot=document.createElement('input');
+    pivot.value=limits.pivot?.join(',')??'';
+    pivot.placeholder='Pivot partagé X,Y,Z';
+    pivot.setAttribute('aria-label','Pivot partagé de rotation');
     const slots = document.createElement('textarea');
     slots.value=limits.slots?.map(slot=>slot.join(',')).join('\n')??'';
     slots.placeholder='Une case X,Y,Z par ligne';
@@ -186,12 +190,17 @@ export function bindConstraints(host,{selected,checkpoint,changed,status}) {
         status('Incluez la case actuelle de chaque cube sélectionné.');
         return;
       }
-      const next=cubeConstraints({...limits,group:group.value.trim()||undefined,slots:positions});
+      const hinge=pivot.value.trim()?pivot.value.split(',').map(value=>value.trim()?Number(value):NaN):null;
+      if(hinge&&(hinge.length!==3||hinge.some(value=>!Number.isInteger(value*2)||Math.abs(value)>100))){
+        status('Entrez trois coordonnées entières ou demi-entières pour le pivot.');
+        return;
+      }
+      const next=cubeConstraints({...limits,group:group.value.trim()||undefined,slots:positions,pivot:hinge});
       checkpoint();
       for(const cube of active) cube.constraints=structuredClone(next);
       changed();
     };
-    editor.append(group,slots,apply);
+    editor.append(group,pivot,slots,apply);
   }
   return {refresh};
 }

@@ -56,6 +56,8 @@ export function cubeConstraints(raw) {
   }
   if (typeof raw?.group === 'string' && raw.group.length <= 80) out.group = raw.group;
   if (out.group && raw.solid === true) out.solid = true;
+  if (Array.isArray(raw?.pivot) && raw.pivot.length===3 &&
+    [0,1,2].every(i=>Number.isInteger(raw.pivot[i]*2)&&typeof raw.pivot[i]==='number'&&Math.abs(raw.pivot[i])<=100)) out.pivot=[...raw.pivot];
   return out;
 }
 

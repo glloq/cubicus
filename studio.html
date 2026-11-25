@@ -1,20 +1,40 @@
-<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cubicus Studio</title><link rel="stylesheet" href="./src/style.css"><script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script><header id="studioHeader"><strong>CUBICUS / Studio</strong><button id="newProject">Nouveau</button><details id="localProjects"><summary>Projets locaux</summary>
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cubicus Studio</title><link rel="stylesheet" href="./src/style.css"><link rel="stylesheet" href="./src/workspace.css"><script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head><body class="studio-page">
+<header id="studioHeader" class="app-header">
+  <a class="brand" href="./index.html" aria-label="Accueil Cubicus"><span class="brand-mark" aria-hidden="true">C</span><span>Cubicus <small>Studio</small></span></a>
+  <div class="header-actions">
+<button id="newProject">Nouveau</button><details id="localProjects" class="header-menu"><summary>Projets</summary><div class="menu-content">
 <label>Nom <input id="projectName" maxlength="80" value="Sans titre"></label>
 <label>Projet <select id="projectList"></select></label>
 <button id="openLocal">Ouvrir</button><button id="duplicateLocal">Dupliquer</button><button id="deleteLocal">Supprimer</button>
 <label>Version <select id="projectHistory"></select></label><button id="restoreLocal">Restaurer la version</button>
-</details><button id="recover">Récupérer brouillon</button><button id="saveLocal">Enregistrer</button><button id="save">Télécharger .cubicus</button><label>Ouvrir projet <input id="load" type="file" accept=".cubicus,.json"></label><button id="export">Exporter puzzle</button><button id="test">Tester en onglet</button><button id="testInline">Tester ici</button></header><div class="studio-tabs" role="group" aria-label="Étape de création"><button data-stage="assembly" class="active">1 · Assemblage</button><button data-stage="faces">2 · Faces</button><button data-stage="optics">3 · Optique</button><button data-stage="prepare">4 · Préparer</button></div><div class="layout studio-layout" data-stage="assembly"><aside><div data-panel="assembly"><h3>Assemblage</h3><label>X <input id="nx" type="number" min="1" max="8" value="2"></label><label>Y <input id="ny" type="number" min="1" max="8" value="2"></label><label>Z <input id="nz" type="number" min="1" max="8" value="1"></label></div><div data-panel="optics"><details open><summary>Générateur de fresque</summary><label>Image complète <input id="mural" type="file" accept="image/png,image/jpeg,image/webp"></label><label>Colonnes <input id="muralX" type="number" min="1" max="8" value="3"></label><label>Lignes <input id="muralY" type="number" min="1" max="8" value="2"></label><label>Plan <select id="muralPlane"><option>XY</option><option>XZ</option><option>YZ</option></select></label>
+<button id="recover">Récupérer le dernier brouillon</button>
+<label class="file-control">Importer un projet privé <input id="load" type="file" accept=".cubicus,.json"></label>
+<button id="save">Télécharger .cubicus</button>
+</div></details>
+<button id="saveLocal">Enregistrer</button>
+</div><div class="release-actions">
+<button id="testInline">Tester ici</button><button id="test" class="icon-secondary">Tester en onglet</button><button id="export">Exporter .puzzle</button><button id="embed" class="primary">Intégrer au site</button>
+</div></header>
+<nav class="studio-tabs" aria-label="Étapes de création">
+  <button data-stage="assembly" class="active"><span aria-hidden="true">01</span> Assemblage</button>
+  <button data-stage="faces"><span aria-hidden="true">02</span> Cubes et faces</button>
+  <button data-stage="optics"><span aria-hidden="true">03</span> Optique</button>
+  <button data-stage="prepare"><span aria-hidden="true">04</span> Préparer</button>
+</nav>
+<main class="layout studio-layout" data-stage="assembly"><aside class="workflow-panel" aria-label="Réglages de création">
+<div class="panel-heading"><h1 id="stageTitle">Assemblage</h1><p id="stageDescription">Construisez et organisez les fragments.</p></div>
+<details id="creationPaths" open><summary>Parcours de création</summary><div id="creationPathList" class="creation-paths"></div></details><div data-panel="assembly"><h2>Grille</h2><div class="axis-fields"><label>X <input id="nx" type="number" min="1" max="8" value="2"></label><label>Y <input id="ny" type="number" min="1" max="8" value="2"></label><label>Z <input id="nz" type="number" min="1" max="8" value="1"></label></div><button id="generate" class="primary">Générer la grille</button></div><div data-panel="optics"><details open><summary>Générateur de fresque</summary><label>Image complète <input id="mural" type="file" accept="image/png,image/jpeg,image/webp"></label><label>Colonnes <input id="muralX" type="number" min="1" max="8" value="3"></label><label>Lignes <input id="muralY" type="number" min="1" max="8" value="2"></label><label>Plan <select id="muralPlane"><option>XY</option><option>XZ</option><option>YZ</option></select></label>
 <label>Rotation <select id="muralAngle"><option>0</option><option>90</option><option>180</option><option>270</option></select></label>
 <label>Décalage horizontal <input id="muralOffsetX" type="number" value="0" min="-512" max="512"></label>
 <label>Décalage vertical <input id="muralOffsetY" type="number" value="0" min="-512" max="512"></label>
 <label><input id="muralFill" type="checkbox"> Remplir le cadre</label>
 <label><input id="muralAlpha" type="checkbox"> Fond transparent</label>
-<button id="muralCreate">Découper image</button><p class="help">Crée une plaque de cubes texturés, à mélanger ensuite.</p></details><details><summary>Projection anamorphique</summary><p class="help">Placez les cubes, réglez les écarts et la caméra. Projetez une image depuis cette vue.</p><label>Image <input id="projectionImage" type="file" accept="image/png,image/jpeg,image/webp"></label><label>Résolution <select id="projectionResolution"><option>128</option><option selected>256</option><option>512</option></select></label><label><input id="projectionKeep" type="checkbox" checked> Préserver les faces déjà décorées</label><label><input id="projectionSelected" type="checkbox"> Seulement la sélection</label>
+<button id="muralCreate">Découper image</button><p class="help">Remplace l’assemblage par une plaque de cubes texturés, à mélanger ensuite.</p></details><details><summary>Projection anamorphique</summary><p class="help">Placez les cubes, réglez les écarts et la caméra. Projetez une image depuis cette vue.</p><label>Image <input id="projectionImage" type="file" accept="image/png,image/jpeg,image/webp"></label><label>Résolution <select id="projectionResolution"><option>128</option><option selected>256</option><option>512</option></select></label><label><input id="projectionKeep" type="checkbox" checked> Préserver les faces déjà décorées</label><label><input id="projectionSelected" type="checkbox"> Seulement la sélection</label>
 <label><input id="projectionFace" type="checkbox"> Seulement le côté actif</label>
 <label><input id="projectionLayers" type="checkbox"> Ajouter un calque de projection</label>
 <button id="projectImage">Projeter sur les faces</button><button id="projectionView">Retrouver la vue de conception</button></details><details><summary>Superposition optique</summary><label>Image <input id="overlayImage" type="file" accept="image/png,image/jpeg,image/webp"></label><label>Nombre de couches <input id="overlayCount" type="number" min="2" max="8" value="3"></label><label>Répartition <select id="overlayMode"><option value="pixels">Pixels</option><option value="bands">Bandes</option><option value="regions">Régions</option></select></label>
 <label>Distance en cases <input id="overlayDepth" type="number" min="1" max="3" value="1"></label>
-<button id="overlayCreate">Créer superposition</button><p class="help">Répartit l’image entre plusieurs plaques transparentes.</p></details><details id="silhouetteTool"><summary>Ombres et espaces négatifs</summary>
+<button id="overlayCreate">Créer superposition</button><p class="help">Remplace l’assemblage par des plaques transparentes qui répartissent l’image.</p></details><details id="silhouetteTool"><summary>Ombres et espaces négatifs</summary>
 <label>Silhouette sombre <input id="silhouette" type="file" accept="image/png,image/jpeg,image/webp"></label>
 <label>Construction <select id="silhouetteMode"><option value="shadow">Ombre depuis le dessus</option><option value="negative">Évidement traversant</option></select></label>
 <label>Colonnes de fragments <input id="silhouetteColumns" type="number" min="1" max="4" value="1"></label>
@@ -23,7 +43,7 @@
 <label>Seuil <input id="silhouetteThreshold" type="range" min="0" max="255" value="127"></label>
 <canvas id="silhouettePreview" width="1" height="1" aria-label="Masque échantillonné"></canvas>
 <button id="silhouetteCreate">Remplacer l’assemblage par le masque</button>
-</details></div><div data-panel="assembly"><button id="demo">Démo texturée</button><button id="generate">Générer grille</button><button id="add">Ajouter cube</button><details><summary>Bibliothèque de modèles</summary><button id="librarySave">Mémoriser cube</button><select id="library"></select><button id="libraryAdd">Ajouter modèle</button></details><details id="resourceLibrary"><summary>Bibliothèque locale partagée</summary>
+</details></div><div data-panel="assembly"><div class="panel-actions"><button id="add">Ajouter un cube</button><button id="duplicate">Dupliquer</button><button id="remove">Supprimer</button></div><button id="demo">Charger une démo texturée</button><details><summary>Bibliothèque de modèles</summary><button id="librarySave">Mémoriser cube</button><select id="library"></select><button id="libraryAdd">Ajouter modèle</button></details><details id="resourceLibrary"><summary>Bibliothèque locale partagée</summary>
 <label>Rechercher <input id="resourceSearch" type="search"></label>
 <label>Ressource <select id="resourceList"></select></label>
 <img id="resourcePreview" width="64" height="64" alt="Aperçu de la ressource" hidden>
@@ -38,22 +58,93 @@
 <label>ΔY <input type="number" id="groupOffsetY" value="0" min="-200" max="200"></label>
 <label>ΔZ <input type="number" id="groupOffsetZ" value="0" min="-200" max="200"></label>
 <button id="translateGroup">Translater</button><button id="duplicateGroup">Copier vers le décalage</button>
-</details><details><summary>Contraintes publiques de la sélection</summary><div id="cubeConstraints"></div></details><details><summary>Groupes définis</summary><div id="groupEditor"></div></details><button id="duplicate">Dupliquer</button><button id="remove">Supprimer</button></div><div data-panel="prepare"><h3>Configuration initiale</h3><label><input id="shufflePos" type="checkbox" checked> Positions</label><label><input id="shuffleRot" type="checkbox" checked> Orientations</label><label>Nombre d’opérations <input id="mixSteps" type="number" min="1" max="200" value="20"></label>
+</details><details><summary>Contraintes publiques de la sélection</summary><div id="cubeConstraints"></div></details><details><summary>Groupes définis</summary><div id="groupEditor"></div></details></div><div data-panel="prepare"><details id="mechanismPanel"><summary>Mécanismes et parcours de test</summary>
+<label>Modèle <select id="mechanismTemplate"><option value="sequence">Serrure à séquence</option><option value="rails">Labyrinthe sur rails</option><option value="mirrors">Circuit de miroirs</option><option value="contact">Contact et verrou</option>
+<option value="connectors">Connecteurs solidaires</option><option value="hinge">Bras à charnière</option>
+<option value="fresco">Fresque à reconstituer</option><option value="window">Fenêtre traversante</option>
+<option value="double">Deux réflexions</option><option value="switched">Source commutée</option></select></label>
+<button id="loadMechanismTemplate">Charger le modèle</button>
+<details><summary>États et verrous</summary>
+<label>Nom d’état <input id="flagName" maxlength="40"></label><button id="addFlag">Ajouter un état</button>
+<label>Cube <select id="gateCube"></select></label><label>État de déverrouillage <select id="gateFlag"></select></label>
+<label><input id="gatePosition" type="checkbox"> Verrouiller seulement la position</label><button id="addGate">Ajouter le verrou</button>
+</details>
+<details><summary>Règles d’interaction</summary>
+<label>Événement <select id="ruleEvent"><option value="turn">Rotation</option><option value="move">Déplacement</option><option value="contact">Contact des faces</option><option value="beam">Capteur éclairé</option></select></label>
+<label>Cube <select id="ruleCube"></select></label>
+<div id="rotationFields"><label>Axe <select id="ruleAxis"><option value="">Tous</option><option>X</option><option>Y</option><option>Z</option></select></label>
+<label>Sens <select id="ruleSign"><option value="0">Tous</option><option value="1">Positif</option><option value="-1">Négatif</option></select></label></div>
+<div id="contactFields" hidden><label>Face locale <select id="ruleFace"></select></label><label>Autre cube <select id="ruleOther"></select></label><label>Sa face locale <select id="ruleOtherFace"></select></label></div>
+<label>État requis <select id="ruleNeeds"></select></label>
+<label>État à modifier <select id="ruleSet"></select></label><label><input id="ruleValue" type="checkbox" checked> Activer cet état</label>
+<button id="addRule">Ajouter la règle</button>
+</details>
+<details><summary>Connecteurs de faces</summary>
+<label>Cube <select id="joinCube"></select></label><label>Face <select id="joinFace"></select></label>
+<label>Autre cube <select id="joinOther"></select></label><label>Sa face <select id="joinOtherFace"></select></label>
+<button id="addJoin">Ajouter le connecteur</button>
+</details>
+<details><summary>Émetteurs, miroirs et capteurs</summary>
+<label>Dispositif <select id="deviceKind"><option value="emitter">Émetteur</option><option value="mirror">Miroir de grille</option><option value="receiver">Capteur</option></select></label>
+<label>Cube <select id="deviceCube"></select></label><label>Face locale <select id="deviceFace"></select></label>
+<label id="emitterFields">État d’activation <select id="deviceFlag"></select></label><label id="mirrorFields" hidden>Seconde face locale <select id="deviceExit"></select></label><button id="addDevice">Ajouter le dispositif</button>
+</details>
+<output id="opticalReport"></output><ul id="mechanismList"></ul>
+<details><summary>Parcours privé</summary><output id="proofCount"></output>
+<button id="recordProof" aria-pressed="false">Enregistrer les actions de manipulation</button>
+<button id="verifyProof">Vérifier le parcours depuis le départ</button><button id="clearProof">Vider le parcours</button>
+<output id="proofReport" aria-live="polite"></output></details>
+</details>
+<section class="publish-check" aria-labelledby="publishTitle"><h2 id="publishTitle">Vérification avant export</h2><p id="publishSummary"></p><button id="auditProject">Contrôler l’export</button><pre id="auditResult" aria-live="polite"></pre></section><label>Consigne publique <textarea id="publicInstructions" maxlength="500"></textarea></label><details><summary>Thèmes du tutoriel</summary><p>Ajoutez les effets visuels à expliquer à l’ouverture. Les mécanismes de jeu sont également détectés automatiquement.</p><fieldset id="tutorialTopics"><legend>Effets et mécanismes publics</legend></fieldset></details><h2>Configuration initiale</h2><label><input id="shufflePos" type="checkbox" checked> Positions</label><label><input id="shuffleRot" type="checkbox" checked> Orientations</label><label>Nombre d’opérations <input id="mixSteps" type="number" min="1" max="200" value="20"></label>
 <fieldset id="mixAxes"><legend>Axes de rotation du mélange</legend>
 <label><input type="checkbox" value="X" checked> X</label><label><input type="checkbox" value="Y" checked> Y</label><label><input type="checkbox" value="Z" checked> Z</label>
 </fieldset><label><input id="mixSelected" type="checkbox"> Seulement la sélection</label>
 <label>Graine privée facultative <input id="mixSeed" maxlength="80"></label><button id="shuffle">Mélanger</button><button id="capturePublicView">Utiliser la vue et la lumière actuelles au démarrage</button><button id="clearPublicView">Réinitialiser la vue initiale</button>
-<button id="auditProject">Contrôler le projet</button><pre id="auditResult"></pre><details id="referencesPanel" open><summary>Références privées</summary>
+<details id="referencesPanel" open><summary>Références privées</summary>
 <label>Référence <select id="referenceList"></select></label>
 <label>Nom <input id="referenceName" maxlength="80"></label>
 <label>Notes <textarea id="referenceNotes" maxlength="1000"></textarea></label>
 <button id="reference">Mémoriser l’état actuel</button><button id="restore">Restaurer</button>
 <button id="renameReference">Enregistrer nom et notes</button><button id="duplicateReference">Dupliquer</button>
 <button id="deleteReference">Supprimer</button><button id="compareReference">Comparer avec l’état actuel</button>
-<output id="referenceComparison"></output></details><details><summary>Outils du joueur</summary><div id="publicControls"></div></details></div><div id="controls"></div></aside><section id="view"></section><aside class="face-panel"><h3>Face du cube</h3><label>Cube actif <select id="cubePicker"></select></label><div id="net" class="net"></div><select id="face"><option value="0">+X</option><option value="1">−X</option><option value="2">+Y</option><option value="3">−Y</option><option value="4">+Z</option><option value="5">−Z</option></select><label>Opacité de la face <input id="faceOpacity" type="range" min="0" max="100" value="100"><output id="opacityValue">100%</output></label><label><input type="checkbox" id="alphaFace"> Découper le canal alpha</label><label><input id="blendFace" type="checkbox"> Mélanger le canal alpha</label>
+<output id="referenceComparison"></output></details><details><summary>Outils du joueur</summary><div id="publicControls"></div></details></div><div data-panel="faces"><h2>Face active</h2><div id="faceSelectionDesktop"></div></div></aside>
+<section class="scene-workspace" aria-label="Atelier 3D">
+  <div class="scene-heading"><div><strong id="projectDisplay">Sans titre</strong><span id="sceneSelection"></span></div><div class="scene-actions"><output id="sceneStats"></output><button id="inspectSelection">Inspecter la face</button></div></div>
+  <section id="view" aria-label="Scène 3D"></section>
+  <div class="scene-footer"><div id="controls"></div></div>
+</section>
+<aside class="face-panel" aria-label="Inspecteur"><div class="panel-heading"><h2>Inspecteur</h2></div><div id="faceSelectionMobile"><div id="faceSelection"><label>Cube actif <select id="cubePicker"></select></label><div id="net" class="net"></div><select id="face"><option value="0">+X</option><option value="1">−X</option><option value="2">+Y</option><option value="3">−Y</option><option value="4">+Z</option><option value="5">−Z</option></select></div></div><div class="inspector-tabs" role="group" aria-label="Sections de l’inspecteur">
+  <button type="button" data-inspector="drawing" aria-pressed="true">Dessin</button>
+  <button type="button" data-inspector="material" aria-pressed="false">Matière</button>
+  <button type="button" data-inspector="geometry" aria-pressed="false">Volume</button>
+</div>
+<section data-inspector-panel="drawing"><div class="drawing-toolbar"><label>Outil <select id="brush"><option value="pen">Crayon</option><option value="line">Ligne</option><option value="rect">Rectangle</option><option value="circle">Cercle</option><option value="ellipse">Ellipse</option><option value="triangle">Triangle</option><option value="erase">Gomme</option><option value="stamp">Symbole</option></select></label><label>Image <input id="image" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label></div><section id="faceWorkspace" aria-label="Éditeur 2D">
+<div class="face-view-tools">
+<label>Zoom <input id="faceZoom" type="range" min="100" max="400" step="25" value="100"><output id="faceZoomValue">100 %</output></label>
+<button id="fitFace">Ajuster</button><button id="fullFace">Plein écran</button>
+<label><input type="checkbox" id="showFaceGrid"> Grille</label><label><input type="checkbox" id="faceGuides"> Repères axiaux</label>
+<label>Pas <input id="gridSize" type="number" min="4" max="128" value="32"></label>
+<label><input id="snapFace" type="checkbox"> Accrochage</label>
+<output id="paintCoordinates"></output>
+</div>
+<div id="paintViewport"><div id="paintSurface"><canvas id="paint" width="512" height="512"></canvas></div></div>
+<p class="help">Alt + glisser pour déplacer la vue. Maj pour contraindre une ligne.</p>
+</section><div class="paint-options"><label>Couleur <input id="color" type="color" value="#ffffff"></label><label>Épaisseur <input id="width" type="range" min="1" max="40" value="8"></label><label>Remplissage <input id="fillColor" type="color" value="#ffffff"></label><label><input id="shapeFill" type="checkbox"> Remplir les formes</label><label>Opacité du trait <input id="drawOpacity" type="range" min="1" max="100" value="100"></label><label><input id="dashLine" type="checkbox"> Trait discontinu</label></div><details><summary>Symboles et placement</summary><label>Symbole <select id="stampSymbol"><option value="cross">Croix</option><option value="triangle">Triangle</option><option value="square">Carré</option><option value="circle">Cercle</option><option value="diamond">Losange</option><option value="arrow">Flèche</option><option value="star">Étoile</option><option value="rings">Anneaux</option></select></label><label>Taille <input id="stampSize" type="range" min="16" max="480" value="160"></label><label>Angle <select id="stampAngle"><option>0</option><option>90</option><option>180</option><option>270</option></select></label><label><input id="stampFill" type="checkbox"> Remplir</label><button id="stampMode">Placer à la souris</button><button id="stampCenter">Insérer au centre</button></details><label>Texte <input id="text" type="text" maxlength="40"></label><button id="textAdd">Inscrire</button><button id="clear" class="danger-subtle">Effacer la face</button><button id="turn">Tourner image 90°</button><button id="copy">Copier face</button><button id="paste">Coller face</button><details><summary>Forme vectorielle</summary>
+<label>Forme <select id="vectorShape"><option value="rect">Rectangle</option><option value="ellipse">Ellipse</option><option value="triangle">Triangle</option><option value="line">Ligne</option></select></label>
+<label>X <input id="vectorX" type="number" min="0" max="512" value="128"></label><label>Y <input id="vectorY" type="number" min="0" max="512" value="128"></label>
+<label>Largeur <input id="vectorWidth" type="number" min="1" max="512" value="256"></label><label>Hauteur <input id="vectorHeight" type="number" min="1" max="512" value="256"></label>
+<label>Trait <input id="vectorStroke" type="number" min="1" max="64" value="5"></label>
+<label>Couleur <input id="vectorColor" type="color" value="#ffffff"></label><label><input id="vectorFill" type="checkbox"> Remplir</label>
+<button id="vectorAdd">Ajouter un calque de forme</button><button id="vectorUpdate" disabled>Appliquer au calque sélectionné</button>
+</details><details><summary>Calques de la face</summary><select id="layerList" size="3"></select><button id="layerAdd">Ajouter calque vide</button><label>Nom <input id="layerName" maxlength="80"></label>
+<label><input id="layerLocked" type="checkbox"> Verrouillé</label>
+<button id="layerDuplicate">Dupliquer calque</button><button id="layerFlatten">Fusionner les calques visibles</button>
+<button id="layerDelete">Supprimer calque</button><button id="layerUp">Monter</button><button id="layerDown">Descendre</button><label><input id="layerVisible" type="checkbox" checked> Visible</label><label>Opacité du calque <input id="layerOpacity" type="range" min="0" max="100" value="100"></label><p class="help">Le dessin modifie le calque actif. La scène affiche la composition.</p></details></section>
+<section data-inspector-panel="material" hidden><label>Opacité de la face <input id="faceOpacity" type="range" min="0" max="100" value="100"><output id="opacityValue">100%</output></label><label><input type="checkbox" id="alphaFace"> Découper le canal alpha</label><label><input id="blendFace" type="checkbox"> Mélanger le canal alpha</label>
 <label>Éclairage de la face <select id="materialMode"><option value="lit">Standard</option><option value="unlit">Sans éclairage</option><option value="emissive">Émissif</option><option value="mirror">Miroir planaire</option></select></label>
 <label>Teinte <input id="materialColor" type="color" value="#ffffff"></label><button id="materialReset">Réinitialiser la teinte</button>
-<label><input id="neutralMaterials" type="checkbox"> Aperçu neutre (Studio)</label><button id="opacityAll">Appliquer aux six faces</button><details><summary>Structure ouverte</summary><div id="openFaces"></div><button id="openAll">Ouvrir toutes les faces</button><button id="closeAll">Fermer toutes les faces</button><p class="help">Masque les parois choisies ; ne crée pas de parois épaisses.</p></details><details id="volumeEditor"><summary>Géométrie et sous-volumes</summary>
+<label><input id="neutralMaterials" type="checkbox"> Aperçu neutre (Studio)</label><button id="opacityAll">Appliquer aux six faces</button><details><summary>Structure ouverte</summary><div id="openFaces"></div><button id="openAll">Ouvrir toutes les faces</button><button id="closeAll">Fermer toutes les faces</button><p class="help">Masque les parois choisies ; ne crée pas de parois épaisses.</p></details></section>
+<section data-inspector-panel="geometry" hidden><details id="volumeEditor"><summary>Géométrie et sous-volumes</summary>
 <label>Grille interne <select id="volumeResolution"><option>2</option><option>4</option><option selected>8</option><option>16</option></select></label>
 <label>Préréglage <select id="volumePreset"><option value="solid">Plein</option><option value="shell">Parois</option><option value="frame">Cadre</option><option value="tunnel">Percée rectangulaire Z</option><option value="plate">Plaque</option></select></label>
 <label>Épaisseur (cellules) <input id="volumeWall" type="number" min="1" max="16" value="1"></label>
@@ -64,21 +155,11 @@
 </fieldset>
 <button id="volumeApply">Appliquer le préréglage</button><button id="volumeSolid">Revenir au cube plein</button>
 <label>Couche Z <select id="volumeLayer"></select></label><div id="volumeCells"></div>
-</details><details><summary>Calques de la face</summary><select id="layerList" size="3"></select><button id="layerAdd">Ajouter calque vide</button><label>Nom <input id="layerName" maxlength="80"></label>
-<label><input id="layerLocked" type="checkbox"> Verrouillé</label>
-<button id="layerDuplicate">Dupliquer calque</button><button id="layerFlatten">Fusionner les calques visibles</button>
-<button id="layerDelete">Supprimer calque</button><button id="layerUp">Monter</button><button id="layerDown">Descendre</button><label><input id="layerVisible" type="checkbox" checked> Visible</label><label>Opacité du calque <input id="layerOpacity" type="range" min="0" max="100" value="100"></label><p class="help">Le dessin modifie le calque actif. La scène affiche la composition.</p></details><section id="faceWorkspace" aria-label="Éditeur 2D">
-<div class="face-view-tools">
-<label>Zoom <input id="faceZoom" type="range" min="100" max="400" step="25" value="100"><output id="faceZoomValue">100 %</output></label>
-<button id="fitFace">Ajuster</button><button id="fullFace">Plein écran</button>
-<label><input type="checkbox" id="showFaceGrid"> Grille</label>
-<label>Pas <input id="gridSize" type="number" min="4" max="128" value="32"></label>
-<label><input id="snapFace" type="checkbox"> Accrochage</label>
-<output id="paintCoordinates"></output>
-</div>
-<div id="paintViewport"><div id="paintSurface"><canvas id="paint" width="512" height="512"></canvas></div></div>
-<p class="help">Alt + glisser pour déplacer la vue. Maj pour contraindre une ligne.</p>
-</section><label>Image <input id="image" type="file" accept="image/png,image/jpeg,image/webp"></label><label>Couleur <input id="color" type="color" value="#ffffff"></label><label>Épaisseur <input id="width" type="range" min="1" max="40" value="8"></label><label>Remplissage <input id="fillColor" type="color" value="#ffffff"></label><label><input id="shapeFill" type="checkbox"> Remplir les formes</label><label>Opacité du trait <input id="drawOpacity" type="range" min="1" max="100" value="100"></label><label><input id="dashLine" type="checkbox"> Trait discontinu</label><select id="brush"><option value="pen">Crayon</option><option value="line">Ligne</option><option value="rect">Rectangle</option><option value="circle">Cercle</option><option value="ellipse">Ellipse</option><option value="triangle">Triangle</option><option value="erase">Gomme</option><option value="stamp">Symbole</option></select><details><summary>Symboles et placement</summary><label>Symbole <select id="stampSymbol"><option value="cross">Croix</option><option value="triangle">Triangle</option><option value="square">Carré</option><option value="circle">Cercle</option><option value="diamond">Losange</option><option value="arrow">Flèche</option><option value="star">Étoile</option><option value="rings">Anneaux</option></select></label><label>Taille <input id="stampSize" type="range" min="16" max="480" value="160"></label><label>Angle <select id="stampAngle"><option>0</option><option>90</option><option>180</option><option>270</option></select></label><label><input id="stampFill" type="checkbox"> Remplir</label><button id="stampMode">Placer à la souris</button><button id="stampCenter">Insérer au centre</button></details><label>Texte <input id="text" type="text" maxlength="40"></label><button id="textAdd">Inscrire</button><button id="clear">Effacer face</button><button id="turn">Tourner image 90°</button><button id="copy">Copier face</button><button id="paste">Coller face</button></aside></div><dialog id="imageImport" aria-label="Transformer l’image">
+<fieldset id="volumeRegion" hidden><legend>Édition par région (X,Y,Z à partir de 1)</legend>
+<label>Premier coin <input id="volumeRegionStart" value="1,1,1"></label><label>Dernier coin <input id="volumeRegionEnd" value="2,2,2"></label>
+<button id="volumeFillRegion">Remplir la région</button><button id="volumeCutRegion">Évider la région</button>
+</fieldset>
+</details></section></aside></main><dialog id="imageImport" aria-label="Transformer l’image">
 <form id="imageTransform">
 <canvas id="imagePreview" width="512" height="512"></canvas>
 <label>Cadrage <select id="importFit"><option value="fit">Ajuster</option><option value="fill">Remplir</option></select></label>
@@ -90,7 +171,19 @@
 <label><input id="importFlipY" type="checkbox"> Retournement vertical</label>
 <label>Opacité <input id="importOpacity" type="range" min="0" max="100" value="100"></label>
 <button type="button" id="cancelImageImport">Annuler</button><button type="submit" id="applyImageImport">Appliquer</button>
-</form></dialog><dialog id="playtest" aria-label="Test de l’énigme">
+</form></dialog><dialog id="embedDialog" aria-labelledby="embedTitle">
+<h2 id="embedTitle">Intégrer l’énigme à un site</h2>
+<p>Placez le fichier HTML à côté de votre page, puis collez cette ligne dans la div de votre choix.</p>
+<button id="downloadStandalone" type="button">Télécharger le fichier HTML autonome</button>
+<label>Chemin ou URL du fichier <input id="embedSource" type="text" value="./cubicus-enigme.html" spellcheck="false"></label>
+<textarea id="embedCode" aria-label="Code iframe avec fichier HTML" readonly rows="3"></textarea>
+<button id="copyHosted" type="button">Copier la ligne HTML</button>
+<p>Vous pouvez aussi coller une iframe qui contient tout le fichier. Cette ligne est plus longue et utilise du JavaScript intégré.</p>
+<button id="copyInline" type="button">Copier la ligne autonome</button>
+<textarea id="inlineCode" aria-label="Code iframe autonome" readonly rows="3" hidden></textarea>
+<p id="embedStatus" role="status"></p>
+<button id="closeEmbed" type="button">Fermer</button>
+</dialog><dialog id="playtest" aria-label="Test de l’énigme">
 <div><button id="closePlaytest">Retour au Studio</button><button id="reloadPlaytest">Charger la version actuelle</button></div>
 <iframe id="playtestFrame" title="Player Cubicus"></iframe>
-</dialog><p id="status" class="studio-status" role="status"></p><script type="module" src="./src/studio.js"></script></html>
+</dialog><p id="status" class="studio-status" role="status"></p><script type="module" src="./src/studio.js"></script></body></html>

@@ -1,7 +1,9 @@
+import {publicTutorial} from './tutorial-topics.js';
+import {mechanismConfig} from './mechanisms.js';
 import {controlRules} from './control-rules.js';
 import {initialView} from './scene-state.js';
 import { validateProjectCubes } from './layers.js';
-import { validate } from './model.js';
+import { publicInstructions, validate } from './model.js';
 
 const HISTORY_LIMIT = 3;
 
@@ -21,10 +23,11 @@ export function readPrivateProject(raw) {
         id: crypto.randomUUID(), name: 'Conception', notes: '',
         cubes: oldReference, view: raw.referenceView ?? null
       }] : [];
+  const cubes=parseCubes(raw.cubes);
   return {
     version: 2,
     name: normalizeName(raw.name),
-    cubes: parseCubes(raw.cubes),
+    cubes,
     reference: oldReference,
     references,
     referenceView: raw.referenceView ?? null,
@@ -32,6 +35,10 @@ export function readPrivateProject(raw) {
     publicView: initialView(raw.publicView),
     library: Array.isArray(raw.library) ? raw.library.map(cube => parseCubes([cube])[0]) : [],
     controls: controlRules(raw.controls),
+    mechanisms: mechanismConfig(raw.mechanisms,cubes),
+    instructions: publicInstructions(raw.instructions),
+    tutorial: publicTutorial(raw.tutorial),
+    proof: Array.isArray(raw.proof) ? raw.proof.slice(0,500) : [],
     mixSeed: typeof raw.mixSeed==='string' ? raw.mixSeed.slice(0,80) : ''
   };
 }

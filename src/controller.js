@@ -1,3 +1,4 @@
+import {gatedCubes,mechanismStep,traceBeams} from './mechanisms.js';
 import {History} from './history.js';
 import {AXES, controlRules, lightingState} from './control-rules.js';
 import {actionState, applyChanges, capabilities, groupSwapAction, layerSwapAction, previewAction, selection} from './control-actions.js';
@@ -194,9 +195,15 @@ export class Controller {
     this.setMode('select');
   }
 
+  configureMechanisms(config) {
+    this.mechanisms=config;
+    this.activeFlags=mechanismStep(config,this.cubes).active;
+    this.index=null;
+  }
+
   updateIndex() {
     this.index = actionState(this.cubes, this.rules, this.view.lightType);
-    this.transformIndex = this.player ? this.index : actionState(
+    this.transformIndex = this.player ? actionState(gatedCubes(this.mechanisms,this.cubes,this.activeFlags??[]),this.rules,this.view.lightType) : actionState(
       this.cubes.map(({constraints,...cube}) => ({...cube, constraints: constraints?.group ? {group:constraints.group} : undefined})), this.rules, this.view.lightType
     );
     this.available = capabilities(this.transformIndex);
@@ -222,7 +229,7 @@ export class Controller {
 
   group(id = this.selected) {
     const multiple = id && id !== this.selected ? [...this.multiple,id] : this.multiple;
-    return selection(this.player ? this.index : this.transformIndex, {id, scope:this.scope, axis:this.axis, multiple});
+    return selection(this.transformIndex, {id, scope:this.scope, axis:this.axis, multiple});
   }
 
   rotationAction(axis,sign) {
@@ -241,7 +248,7 @@ export class Controller {
   }
 
   dropAction(a,b) {
-    if(this.control('moveType').value==='swapGroups')return groupSwapAction(this.index,a,b);
+    if(this.control('moveType').value==='swapGroups')return groupSwapAction(this.transformIndex,a,b);
     return {type:'swap',ids:[a,b]};
   }
 
@@ -267,9 +274,16 @@ export class Controller {
       return false;
     }
     this.checkpoint();
+    const pivot=action.type==='collective'&&this.transformIndex.byId.get(action.ids[0])?.constraints?.pivot;
+    if(pivot)this.view.hingeTransition={
+      pivot,axis:AXES.indexOf(action.axis),sign:action.sign,
+      starts:new Map(action.ids.map(id=>[id,[...this.index.byId.get(id).p]]))
+    };
     applyChanges(this.index,changes);
+    if(this.player&&this.mechanisms)this.activeFlags=mechanismStep(this.mechanisms,this.cubes,this.activeFlags,action).active;
     if (id) this.selected = id;
     this.hint.textContent = '';
+    this.onAction?.(action);
     this.changed(true);
     return true;
   }
@@ -372,6 +386,7 @@ export class Controller {
     this.preview(null);
     if (!this.index || this.index.cubes !== this.cubes) this.updateIndex();
     const group = this.refreshControls();
+    this.view.beamSegments=traceBeams(this.mechanisms,this.cubes,this.player?this.activeFlags:this.mechanisms?.flags).segments;
     this.view.update(this.cubes,group.map(cube => cube.id),this.spacing,animate);
     if(this.view.animating){
       for(const {button} of [...this.rotationButtons,...this.moveButtons])button.disabled=true;
@@ -454,7 +469,7 @@ export class Controller {
   }
 
   lightState() { return [+this.control('az').value,+this.control('el').value,this.control('shadows').checked]; }
-  snapshot() { return {cubes:structuredClone(this.cubes),spacing:[...this.spacing],selected:this.selected,multiple:[...this.multiple],light:this.lightState(),lighting:this.lightingEquipment()}; }
+  snapshot() { return {cubes:structuredClone(this.cubes),spacing:[...this.spacing],selected:this.selected,multiple:[...this.multiple],light:this.lightState(),lighting:this.lightingEquipment(),activeFlags:[...(this.activeFlags??[])],extra:this.captureExtra?.()}; }
   checkpoint() { this.history.record(this.snapshot()); this.updateHistory(); }
 
   updateHistory() {
@@ -474,6 +489,7 @@ export class Controller {
   restore(state) {
     if (!state) return;
     this.cubes = state.cubes;
+    this.activeFlags=state.activeFlags??[];
     this.selected = state.selected;
     this.multiple = state.multiple;
     this.setSpacing(state.spacing);
@@ -485,12 +501,13 @@ export class Controller {
     this.view.setShadows(shadows);
     this.swap = false;
     this.swapButton.textContent = 'Permuter par clics';
-    this.onRestore?.();
+    this.onRestore?.(state.extra);
     this.changed();
   }
 
   replace(cubes) {
     this.cubes = structuredClone(cubes);
+    if(this.player)this.activeFlags=mechanismStep(this.mechanisms,this.cubes).active;
     this.selected = null;
     this.multiple = [];
     this.swap = false;

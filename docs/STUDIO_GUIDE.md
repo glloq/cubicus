@@ -32,3 +32,33 @@ Dans **Préparer → Outils du joueur**, choisissez un profil, ou demandez une s
 Dans **Assemblage**, sélectionnez les cubes concernés avant d’appliquer les contraintes. Une case autorisée s’écrit `X,Y,Z` sur sa propre ligne. Les coordonnées actuelles doivent figurer dans les places autorisées. Dans **Groupes définis**, sélectionnez, renommez, copiez ou dissolvez les groupes. Une copie utilise le décalage configuré pour la sélection et crée un groupe distinct.
 
 Le mode création peut déplacer des cubes que le joueur verra verrouillés. Vérifiez ensuite les avertissements de cohérence. Le mélange peut utiliser la sélection seule et une graine privée. Ses opérations sont validées avec les droits du Player. [Guide des commandes](PLAYER_CONTROLS.md)
+
+## Se repérer dans l’atelier
+
+Les parcours dans **Assemblage** ouvrent directement un outil d’édition ou un générateur. **Inspecter la face** ouvre le dessin depuis la scène. L’inspecteur sépare **Dessin**, **Matière** et **Volume**. Dans **Préparer**, utilisez **Contrôler l’export** pour vérifier le fichier public avant de le télécharger. Le menu **Projets** donne accès aux fichiers privés, au brouillon et aux versions locales.
+
+## Intégrer une énigme sur un autre site
+
+Le bouton **Intégrer au site** prépare le même état public que l’export `.puzzle` et y ajoute le lecteur, Three.js et les styles. Le fichier `cubicus-enigme.html` peut être ouvert seul ou publié sur un hébergement statique. Copiez la ligne iframe dans la div voulue. Le chemin proposé fonctionne quand les deux pages sont dans le même dossier. Si le fichier est hébergé ailleurs, adaptez le chemin ou entrez son URL publique dans le Studio.
+
+Pour une intégration sans deuxième fichier, copiez la ligne autonome. Cette variante embarque le document entier dans `srcdoc` et peut être volumineuse. Elle dépend des règles de sécurité de la page qui l’accueille. Les deux variantes isolent le Player dans une iframe et chargent directement l’énigme. Les notes, les calques éditables et les références restent dans le projet privé.
+
+## Concevoir une énigme à états
+
+Dans **Préparer → Mécanismes et parcours de test**, chargez un des dix modèles pour examiner ses cubes, ses règles et son parcours privé. Les modèles couvrent la serrure à séquence, les rails, les miroirs, le contact, les connecteurs solidaires, la charnière, la fresque, la fenêtre traversante, le double relais et la source commutée. La consigne publique est affichée dans **Aide de jeu** dans le Player.
+
+Pour créer un mécanisme, nommez vos états, définissez une règle qui active ou désactive un état, puis associez cet état à un verrou ou à un émetteur. Les règles évaluent leurs conditions au début de chaque action validée et appliquent leurs effets dans l’ordre affiché. Un capteur nouvellement éclairé par l’activation d’un émetteur peut servir de condition à l’action suivante. Annuler, rétablir et réinitialiser restaurent également les états.
+
+Les rails utilisent les cases autorisées d’un cube. Les connecteurs s’assemblent lorsque les deux faces désignées se touchent et se font face. Les cubes reliés sont solidaires. Pour construire une charnière, appliquez le même pivot X,Y,Z aux cubes d’un groupe. La rotation se fait par quarts de tour. Le contrôle de l’arc échantillonne les enveloppes unitaires des cubes. Les faisceaux utilisent les axes de la grille, traversent les cases libres et sont bloqués par les cubes ordinaires. Les miroirs de circuit relient deux faces perpendiculaires et sont distincts du rendu par réflexion planaire.
+
+Enregistrez des manipulations puis arrêtez l’enregistrement pour revenir aux poses de départ. **Vérifier le parcours depuis le départ** rejoue les actions avec les droits publics et signale le premier blocage. Ce contrôle ne recherche pas toutes les solutions. Pour les énigmes avec des verrous ou des connecteurs, placez le départ manuellement avant de vérifier le parcours.
+
+Dans **Cubes et faces**, créez un calque vectoriel avec une forme, sa position, ses dimensions et sa couleur. L’import de SVG prend en charge les formes et tracés simples et les rasterise. Les repères axiaux du canevas aident à aligner les motifs. Dans **Volume**, vous pouvez remplir ou évider une région entre deux coins de la grille interne.
+
+Les consignes publiées, les appareils et leurs règles sont lisibles dans l’export. Le parcours enregistré reste dans le projet privé.
+
+## Tutoriel à l’ouverture
+
+Le Player affiche une fenêtre d’aide à chaque ouverture d’énigme. Elle réunit la consigne publique, les commandes disponibles et les mécanismes présents. **Jouer** ferme la fenêtre et **Aide de jeu** permet de la rouvrir. L’export HTML autonome conserve ce tutoriel.
+
+Dans **Préparer → Thèmes du tutoriel**, ajoutez les effets dont l’origine est invisible dans le fichier final, comme une anamorphose peinte sur des textures. Les générateurs renseignent ces thèmes et les mécanismes structurés sont expliqués automatiquement.

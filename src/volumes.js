@@ -30,3 +30,17 @@ export function makeVolume(size, kind, {wall = 1, openings = []} = {}) {
   }
   return validateVolume({size, cells: cells.join('')});
 }
+
+export function paintVolumeRegion(volume, start, end, occupied) {
+  const {size,cells}=validateVolume(volume);
+  if(![start,end].every(point=>Array.isArray(point)&&point.length===3&&point.every(value=>
+    Number.isInteger(value)&&value>=0&&value<size)))throw Error('Région hors de la grille interne.');
+  const min=start.map((value,i)=>Math.min(value,end[i]));
+  const max=start.map((value,i)=>Math.max(value,end[i]));
+  const result=cells.split('');
+  for(let z=min[2];z<=max[2];z++)for(let y=min[1];y<=max[1];y++)for(let x=min[0];x<=max[0];x++){
+    result[voxelIndex(size,x,y,z)]=occupied?'1':'0';
+  }
+  if(!result.includes('1'))throw Error('Le fragment doit conserver au moins un sous-volume.');
+  return {size,cells:result.join('')};
+}

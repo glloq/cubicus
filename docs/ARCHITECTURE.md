@@ -62,3 +62,11 @@ Le workflow Pages passe par une validation réutilisable incluant les tests Chro
 `control-rules.js` normalise le schéma. `control-actions.js` construit l’index par identité, position et groupe, puis calcule capacités et transformations. Une prévisualisation renvoie l’ensemble des modifications admissibles avant écriture. Le contrôleur et le mélangeur utilisent ces mêmes validations. Dans le Studio, le mode création utilise un index de manipulation sans verrouillage de jeu, et le Player intégré reçoit une copie avec les contraintes publiques.
 
 `control-editor.js` présente les profils, le diagnostic et les contraintes de la sélection. Le format de l’énigme reste V1 et son sous-schéma de commandes passe à V2. [Guide et migration](PLAYER_CONTROLS.md)
+
+## Lecteur HTML autonome
+
+`npm run build:embed` assemble les modules du Player et Three.js dans un gabarit qui contient également les styles. Le Studio y insère le même document public que pour un export `.puzzle`. L’ouverture autonome lit le document JSON intégré et emprunte le chargement normal du Player. La publication Pages génère le gabarit avec les dépendances épinglées.
+
+## Mécanismes
+
+Le document public `.puzzle` V1 accepte une extension `mechanisms.version: 1` et une consigne publique facultative. Le Studio retire les champs privés et remplace les identifiants de cubes et les noms d’états lors de l’export, en conservant leurs relations. Le Player calcule les états, les verrouillages et les connexions par face à partir du même modèle utilisé pour rejouer les parcours privés. La preuve enregistrée reste en dehors du document public et du bundle autonome.

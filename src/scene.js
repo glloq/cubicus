@@ -157,6 +157,22 @@ export class SceneView {
   this.gizmo.add(h);
   this.handles.push(h);
  }}
+ updateBeamLines() {
+  const segments=this.beamSegments??[];
+  if(!this.beamLines&&!segments.length)return;
+  if(!this.beamLines){
+   this.beamLines=new T.LineSegments(new T.BufferGeometry(),new T.LineBasicMaterial({color:0x46ffe4}));
+   this.scene.add(this.beamLines);
+  }
+  const points=segments.flatMap(segment=>segment.flatMap(point=>point.map((value,i)=>(value-this.center[i])*(1+this.spacing[i]))));
+  const signature=points.join(',');
+  if(signature===this.beamSignature)return;
+  this.beamSignature=signature;
+  this.beamLines.geometry.dispose();
+  this.beamLines.geometry=new T.BufferGeometry();
+  this.beamLines.geometry.setAttribute('position',new T.Float32BufferAttribute(points,3));
+  this.beamLines.visible=points.length>0;
+ }
  render(){
   if(this.lightMarker){
    this.lightMarker.visible=this.mode==='light';
@@ -175,7 +191,21 @@ export class SceneView {
   this.updateNavigation();
  }
  texture(src){if(!src)return null;if(!this.cache.has(src)){const t=this.loader.load(src,()=>this.render());t.colorSpace=T.SRGBColorSpace;this.cache.set(src,t)}return this.cache.get(src)}
- update(cubes,selected=[],spacing=[.12,.12,.12],animate=false){this.animationToken=(this.animationToken||0)+1;const token=this.animationToken;const old=new Map(this.meshes.map(m=>[m.userData.id,m]));const center=[0,1,2].map(i=>cubes.length?(Math.min(...cubes.map(c=>c.p[i]))+Math.max(...cubes.map(c=>c.p[i])))/2:0);this.cubes=cubes;this.center=center;this.spacing=spacing;const transitions=[];const activeVolumes=new Set();this.meshes=[];this.hoverIds=new Set();this.lastHoveredCube=null;this.lastHoveredHandle=null;
+ hingePosition(mesh, hinge, center, previousCenter, spacing, fraction) {
+  const start=hinge.starts.get(mesh.userData.id);
+  if(!start)return false;
+  const {axis,pivot,sign}=hinge;
+  const u=(axis+1)%3,v=(axis+2)%3;
+  const theta=sign*Math.PI*.5*fraction;
+  const cos=Math.cos(theta),sin=Math.sin(theta);
+  const local=[...start];
+  const x=start[u]-pivot[u],y=start[v]-pivot[v];
+  local[u]=pivot[u]+cos*x-sin*y;
+  local[v]=pivot[v]+sin*x+cos*y;
+  mesh.position.set(...local.map((value,i)=>(value-previousCenter[i]-(center[i]-previousCenter[i])*fraction)*(1+spacing[i])));
+  return true;
+ }
+ update(cubes,selected=[],spacing=[.12,.12,.12],animate=false){const hinge=this.hingeTransition;this.hingeTransition=null;const previousCenter=this.center;this.animationToken=(this.animationToken||0)+1;const token=this.animationToken;const old=new Map(this.meshes.map(m=>[m.userData.id,m]));const center=[0,1,2].map(i=>cubes.length?(Math.min(...cubes.map(c=>c.p[i]))+Math.max(...cubes.map(c=>c.p[i])))/2:0);this.cubes=cubes;this.center=center;this.spacing=spacing;const transitions=[];const activeVolumes=new Set();this.meshes=[];this.hoverIds=new Set();this.lastHoveredCube=null;this.lastHoveredHandle=null;
   for(const c of cubes){let m=old.get(c.id);if(m){old.delete(c.id)}else{m=new T.Mesh(this.geo,[]);this.group.add(m);m.userData.id=c.id;m.castShadow=true;m.receiveShadow=true;const line=new T.LineSegments(this.edges,new T.LineBasicMaterial({color:0xffcb70}));m.add(line)}
    const volumeKey = c.volume ? c.volume.size + ':' + c.volume.cells : null;
    if (volumeKey) activeVolumes.add(volumeKey);
@@ -233,9 +263,24 @@ export class SceneView {
   this.mirrors.update(this.meshes, cubes, this.neutralMaterials);
   const used=new Set(cubes.flatMap(c=>c.faces).filter(Boolean));for(const [k,t] of this.cache)if(!used.has(k)){t.dispose();this.cache.delete(k)}
   this.extent=Math.max(2,...this.meshes.map(m=>m.position.length()+1),...transitions.map(a=>a.p.length()+1));this.receiver.position.y=Math.min(0,...this.meshes.map(m=>m.position.y))-.65;const sc=this.light.shadow.camera;sc.left=sc.bottom=-this.extent*1.5;sc.right=sc.top=this.extent*1.5;sc.far=1000;sc.updateProjectionMatrix();
-  this.animating=transitions.length>0;this.updateGizmo(selected);if(this.animating){const start=performance.now();const frame=now=>{if(token!==this.animationToken)return;const t=Math.min(1,(now-start)/180),ease=t*t*(3-2*t);for(const a of transitions){a.m.position.lerpVectors(a.from,a.p,ease);a.m.quaternion.slerpQuaternions(a.rot,a.q,ease)}if(t<1)requestAnimationFrame(frame);else{this.animating=false;this.updateGizmo(this.selectedIds);this.onAnimationEnd?.()}this.render()};requestAnimationFrame(frame)}this.render()
+  this.updateBeamLines();
+  this.animating=transitions.length>0;this.updateGizmo(selected);if(this.animating){const start=performance.now();const frame=now=>{if(token!==this.animationToken)return;const t=Math.min(1,(now-start)/180),ease=t*t*(3-2*t);for(const a of transitions){if(!hinge||!previousCenter||!this.hingePosition(a.m,hinge,center,previousCenter,spacing,ease))a.m.position.lerpVectors(a.from,a.p,ease);a.m.quaternion.slerpQuaternions(a.rot,a.q,ease)}if(t<1)requestAnimationFrame(frame);else{this.animating=false;this.updateGizmo(this.selectedIds);this.onAnimationEnd?.()}this.render()};requestAnimationFrame(frame)}this.render()
  }
- fit(){const n=Math.max(2,this.extent||2);this.camera.position.set(n*1.3,n,n*1.8);this.orbit.target.set(0,0,0);if(this.camera.isOrthographicCamera){this.orthoHeight=n*2.5;this.camera.zoom=1;this.resize()}this.orbit.update();this.render()}
+ fit() {
+  const extent = Math.max(2,this.extent||2);
+  const aspect = this.host.clientWidth / Math.max(1,this.host.clientHeight);
+  const framing = Math.max(1,.85 / (aspect || 1));
+  const size = extent * framing;
+  this.camera.position.set(size*1.3,size,size*1.8);
+  this.orbit.target.set(0,0,0);
+  if (this.camera.isOrthographicCamera) {
+   this.orthoHeight = size*2.5;
+   this.camera.zoom = 1;
+   this.resize();
+  }
+  this.orbit.update();
+  this.render();
+ }
  setLightEquipment(type){
   if(this.lightType===type)return;
   this.light.removeFromParent();

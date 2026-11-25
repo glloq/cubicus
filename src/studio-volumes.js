@@ -1,4 +1,4 @@
-import {makeVolume, validateVolume, voxelIndex} from './volumes.js';
+import {makeVolume, paintVolumeRegion, validateVolume, voxelIndex} from './volumes.js';
 
 export function bindVolumeEditor({selected, checkpoint, change, status}) {
   const q = id => document.getElementById(id);
@@ -11,6 +11,7 @@ export function bindVolumeEditor({selected, checkpoint, change, status}) {
     const volume = cube?.volume;
     for (const id of ['volumeApply', 'volumeSolid']) q(id).disabled = !cube;
     grid.replaceChildren();
+    q('volumeRegion').hidden=!volume;
     if (!volume) {
       layer.replaceChildren();
       return;
@@ -59,6 +60,21 @@ export function bindVolumeEditor({selected, checkpoint, change, status}) {
       status(error.message);
     }
   };
+  const region=occupied=>{
+    const cube=selected();
+    if(!cube?.volume)return;
+    const points=['volumeRegionStart','volumeRegionEnd'].map(id=>q(id).value.split(',').map(value=>
+      /^[1-9][0-9]*$/.test(value.trim())?Number(value)-1:NaN));
+    try{
+      const next=paintVolumeRegion(cube.volume,...points,occupied);
+      if(next.cells===cube.volume.cells)return;
+      checkpoint();
+      cube.volume=next;
+      change();
+    }catch(error){status(error.message);}
+  };
+  q('volumeFillRegion').onclick=()=>region(true);
+  q('volumeCutRegion').onclick=()=>region(false);
   q('volumeSolid').onclick = () => {
     const cube = selected();
     if (!cube?.volume) return;

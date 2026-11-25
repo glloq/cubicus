@@ -24,14 +24,25 @@ export function bindFaceWorkspace(canvas, {checkpoint, commit, canDraw, stamp, a
     updateSize();
     viewport.scrollTo(centerX * zoom - viewport.clientWidth / 2, centerY * zoom - viewport.clientHeight / 2);
   };
+  q('faceGuides').onchange=()=>q('paintSurface').classList.toggle('face-guides',q('faceGuides').checked);
   q('fitFace').onclick = () => {
     q('faceZoom').value = 100;
     q('faceZoom').oninput({target: q('faceZoom')});
   };
-  q('fullFace').onclick = async () => {
-    if (document.fullscreenElement) await document.exitFullscreen();
-    else if (q('faceWorkspace').requestFullscreen) await q('faceWorkspace').requestFullscreen();
+  const editor = q('faceWorkspace').closest('[data-inspector-panel="drawing"]') ?? q('faceWorkspace');
+  const fullscreen = q('fullFace');
+  fullscreen.hidden = typeof editor.requestFullscreen !== 'function';
+  fullscreen.onclick = async () => {
+    try {
+      if (document.fullscreenElement === editor) await document.exitFullscreen();
+      else await editor.requestFullscreen();
+    } catch {
+      fullscreen.textContent = 'Plein écran indisponible';
+    }
   };
+  document.addEventListener('fullscreenchange', () => {
+    fullscreen.textContent = document.fullscreenElement === editor ? 'Quitter le plein écran' : 'Plein écran';
+  });
 
   function point(event) {
     const rect = canvas.getBoundingClientRect();
