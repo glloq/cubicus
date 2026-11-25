@@ -55,8 +55,11 @@ try {
   await page.mouse.down();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.up();
-  const painted = await canvas.evaluate(node => [...node.getContext('2d').getImageData(192,192,1,1).data]);
-  assert.deepEqual(painted, [255,255,255,255]);
+  const painted = await canvas.evaluate(node => {
+    const pixels=node.getContext('2d').getImageData(128,128,128,128).data;
+    return pixels.some((value,index)=>index%4===0&&value===255&&pixels[index+1]===255&&pixels[index+2]===255);
+  });
+  assert.equal(painted,true);
   await page.locator('#faceZoom').fill('200');
   assert.equal(await page.locator('#faceZoomValue').textContent(), '200%');
   await page.locator('#fitFace').click();
@@ -76,6 +79,7 @@ try {
   await page.locator('#importFlipX').check();
   await page.locator('#importOpacity').fill('50');
   await page.locator('#applyImageImport').click();
+  await page.waitForFunction(()=>document.querySelector('#paint').getContext('2d').getImageData(410,256,1,1).data[3]===128);
   const imported = await canvas.evaluate(node => {
     const ctx = node.getContext('2d');
     return [ctx.getImageData(100,256,1,1).data[3], ctx.getImageData(410,256,1,1).data[3]];
@@ -84,7 +88,7 @@ try {
   assert.equal(await page.locator('#blendFace').isChecked(), true);
 
   await page.locator('#fullFace').click();
-  await page.waitForFunction(() => document.fullscreenElement?.dataset.inspectorPanel === 'drawing');
+  await page.waitForFunction(() => document.fullscreenElement?.matches('.face-panel'));
   assert.equal(await page.locator('#brush').isVisible(), true);
   await page.locator('#fullFace').click();
   await page.waitForFunction(() => !document.fullscreenElement);

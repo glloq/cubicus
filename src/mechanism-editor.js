@@ -4,7 +4,7 @@ import {mechanismConfig,traceBeams} from './mechanisms.js';
 
 export const emptyMechanisms = () => ({version:1,flags:[],rules:[],gates:[],optics:[],joins:[],counters:[],zones:[],visuals:[]});
 
-export function bindMechanismEditor({read,write,cubes,selected,template,record,verify,clearProof,proofLength,status}) {
+export function bindMechanismEditor({read,write,cubes,selected,template,pickCube,highlightCube,record,verify,clearProof,proofLength,status}) {
   const q=id=>document.getElementById(id);
   const fill=(id,options)=>{
     const input=q(id), previous=input.value;
@@ -73,7 +73,7 @@ export function bindMechanismEditor({read,write,cubes,selected,template,record,v
     q('moduleBindings').replaceChildren();
     q('duplicateModule').disabled=true;
   }
-  const cubeOptions=()=>cubes().map((cube,i)=>[cube.id,'Cube '+(i+1)+' · '+cube.p.join(', ')]);
+  const cubeOptions=()=>cubes().map((cube,i)=>[cube.id,cube.name||'Cube '+(i+1)]);
   const named=entries=>(entries??[]).map(({id})=>[id,id]);
   function conditionTargets(){
     const cfg=read();
@@ -130,6 +130,32 @@ export function bindMechanismEditor({read,write,cubes,selected,template,record,v
       return true;
     }catch(failure){error(failure.message);return false;}
   }
+  function conditionText(item,name){
+    const targets={flag:'État actif',counter:'Compteur',zone:'Zone occupée',receiver:'Capteur éclairé',actor:'Cube manipulé'};
+    const label=['receiver','actor'].includes(item.kind)?name(item.id):item.id;
+    const detail=item.kind==='counter'?' '+({eq:'=',gte:'≥',lte:'≤'}[item.op])+' '+item.value:
+      item.cube?' par '+name(item.cube):'';
+    return (item.not?'NON · ':'')+targets[item.kind]+' '+label+detail;
+  }
+  function describe(rule,name){
+    const event=q('ruleEvent').querySelector('[value="'+rule.event+'"]').textContent;
+    const subject=rule.cube?name(rule.cube):rule.zone;
+    const gates=rule.value?read().gates.filter(gate=>gate.flag===rule.set):[];
+    const effect=[rule.set?(rule.value?'active ':'désactive ')+rule.set:'',
+      ...gates.map(gate=>'libère '+name(gate.cube)),rule.counter?'modifie '+rule.counter.id:''].filter(Boolean).join(', ');
+    return [subject?event+' · '+subject:event,effect].filter(Boolean).join(' → ');
+  }
+  function report(entries){
+    const names=new Map(cubeOptions());
+    const name=id=>names.get(id)??'Cube absent';
+    return entries.map(entry=>{
+      const rule=read().rules[entry.rule-1];
+      if(!rule)return '';
+      const blocked=rule.when?.items.filter((item,index)=>!entry.conditions[index]).map(item=>conditionText(item,name))??[];
+      if(entry.requiredMissing&&rule.needs)blocked.unshift('État requis '+rule.needs);
+      return describe(rule,name)+' · '+(entry.matched?'Déclenchée':'Bloquée'+(blocked.length?' · '+blocked.join(' ; '):''));
+    }).filter(Boolean);
+  }
   function refresh(){
     const list=cubeOptions();
     const flags=read().flags.map(flag=>[flag,flag]);
@@ -142,7 +168,7 @@ export function bindMechanismEditor({read,write,cubes,selected,template,record,v
     fill('ruleGateTarget',[['','Aucun cube'],...list]);
     for(const id of ['ruleNeeds','deviceFlag'])fill(id,[['','Toujours'],...flags]);
     for(const id of ['ruleFace','ruleOtherFace','deviceFace','deviceExit','joinFace','joinOtherFace','visualFace'])if(!q(id).options.length){
-      fill(id,['+X','−X','+Y','−Y','+Z','−Z'].map((face,i)=>[i,face]));
+      fill(id,['Droite (+X)','Gauche (−X)','Haut (+Y)','Bas (−Y)','Avant (+Z)','Arrière (−Z)'].map((face,i)=>[i,face]));
     }
     conditionTargets();
     showDraft();
@@ -160,9 +186,16 @@ export function bindMechanismEditor({read,write,cubes,selected,template,record,v
         const row=document.createElement('li');
         if(key==='flags')row.textContent='État '+item+' ';
         if(key==='rules'){
-          const label=q('ruleEvent').querySelector('[value="'+item.event+'"]').textContent;
-          row.textContent=label+' · '+(item.cube?name(item.cube):item.zone??'Tous')+
-            ' → '+[item.set,item.counter?.id].filter(Boolean).join(' · ')+' ';
+          const sentence=document.createElement('strong');
+          sentence.textContent=describe(item,name);
+          row.append(sentence);
+          const group=item.when?.items.map(condition=>conditionText(condition,name)).join(item.when.mode==='any'?' OU ':' ET ');
+          const conditions=[item.needs?'État requis '+item.needs:'',group].filter(Boolean).join(' ET ');
+          if(conditions){
+            const detail=document.createElement('p');
+            detail.textContent=conditions;
+            row.append(detail);
+          }
           const checkbox=document.createElement('input');
           checkbox.type='checkbox';
           checkbox.checked=moduleSelection.has(index);
@@ -196,27 +229,33 @@ export function bindMechanismEditor({read,write,cubes,selected,template,record,v
           }
           if(validateAndWrite(next))loadDraft();
         };
-        if(key==='rules')for(const [label,edit] of [['Modifier',true],['Réutiliser',false]]){
-          const button=document.createElement('button');
-          button.textContent=label;
-          button.onclick=()=>{
-            openEditor(item,edit?index:null);
-          };
-          row.append(button);
-        }
-        if(key==='rules')for(const [delta,label] of [[-1,'Monter'],[1,'Descendre']]){
-          const target=index+delta;
-          const move=document.createElement('button');
-          move.textContent=label;
-          move.disabled=target<0||target>=items.length;
-          move.onclick=()=>{
-            const next=structuredClone(read());
-            [next.rules[index],next.rules[target]]=[next.rules[target],next.rules[index]];
-            if(validateAndWrite(next))loadDraft();
-          };
-          row.append(move);
-        }
-        row.append(remove);
+        if(key==='rules'){
+          const edit=document.createElement('button');
+          edit.textContent='Modifier';
+          edit.onclick=()=>openEditor(item,index);
+          const more=document.createElement('details');
+          const toggle=document.createElement('summary');
+          toggle.textContent='Autres actions';
+          more.append(toggle);
+          const reuse=document.createElement('button');
+          reuse.textContent='Réutiliser';
+          reuse.onclick=()=>openEditor(item,null);
+          more.append(reuse);
+          for(const [delta,label] of [[-1,'Monter'],[1,'Descendre']]){
+            const target=index+delta;
+            const move=document.createElement('button');
+            move.textContent=label;
+            move.disabled=target<0||target>=items.length;
+            move.onclick=()=>{
+              const next=structuredClone(read());
+              [next.rules[index],next.rules[target]]=[next.rules[target],next.rules[index]];
+              if(validateAndWrite(next))loadDraft();
+            };
+            more.append(move);
+          }
+          more.append(remove);
+          row.append(edit,more);
+        }else row.append(remove);
         output.append(row);
       });
     }
@@ -235,6 +274,7 @@ export function bindMechanismEditor({read,write,cubes,selected,template,record,v
   q('ruleEvent').onchange=()=>{
     const event=q('ruleEvent').value;
     q('ruleCubeField').hidden=event==='tick';
+    q('pickRuleCube').hidden=event==='tick';
     q('ruleZoneField').hidden=!['enter','leave'].includes(event);
     q('contactFields').hidden=q('ruleEvent').value!=='contact';
     q('rotationFields').hidden=event!=='turn';
@@ -265,6 +305,18 @@ export function bindMechanismEditor({read,write,cubes,selected,template,record,v
     }
     showStep(quick?2:step+1);
   };
+  for(const [button,field] of [['pickRuleCube','ruleCube'],['pickGateCube','ruleGateTarget']]){
+    q(button).onclick=()=>{
+      dialog.close();
+      pickCube(id=>{
+        dialog.showModal();
+        if(id)q(field).value=id;
+        showStep(step);
+      });
+    };
+    q(field).onchange=()=>highlightCube(q(field).value);
+  }
+  dialog.addEventListener('close',()=>highlightCube(''));
   dialog.oninput=()=>{
     q('ruleError').textContent='';
     preview();
@@ -361,5 +413,6 @@ export function bindMechanismEditor({read,write,cubes,selected,template,record,v
   q('recordProof').onclick=()=>{q('recordProof').setAttribute('aria-pressed',String(record()));};
   q('verifyProof').onclick=verify;
   q('clearProof').onclick=()=>{clearProof();refresh();};
-  return {refresh,resetDraft(){clearModule();if(dialog.open)dialog.close();loadDraft();},stop(){q('recordProof').setAttribute('aria-pressed','false');}};
+  q('newFromMechanismTemplate').onclick=()=>template(q('mechanismTemplate').value,true);
+  return {refresh,report,resetDraft(){clearModule();if(dialog.open)dialog.close();loadDraft();},stop(){q('recordProof').setAttribute('aria-pressed','false');}};
 }

@@ -225,7 +225,35 @@ export class SceneView {
   this.lamps.geometry.setAttribute('color',new T.Float32BufferAttribute(lamps.flatMap(lamp=>new T.Color(lamp.color).toArray()),3));
   this.lamps.visible=positions.length>0;
  }
+ markFace(id,face){
+  if(!this.faceMarker&&!id)return;
+  if(!this.faceMarker){
+   const frame=new T.BufferGeometry().setFromPoints([
+    new T.Vector3(-.47,-.47,0),new T.Vector3(.47,-.47,0),
+    new T.Vector3(.47,.47,0),new T.Vector3(-.47,.47,0)
+   ]);
+   this.faceMarker=new T.LineLoop(frame,new T.LineBasicMaterial({color:0xbfff87}));
+   this.faceMarkerNormal=new T.Vector3();
+   this.faceMarkerAxis=new T.Vector3(0,0,1);
+   this.faceMarkerRotation=new T.Quaternion();
+   this.scene.add(this.faceMarker);
+  }
+  this.markedFace={id,face};
+  this.render();
+ }
+ updateFaceMarker(){
+  if(!this.faceMarker)return;
+  const {id,face}=this.markedFace;
+  const mesh=id&&this.meshes.find(item=>item.userData.id===id);
+  this.faceMarker.visible=Boolean(mesh);
+  if(!mesh)return;
+  const normal=this.faceMarkerNormal.set(0,0,0).setComponent(Math.floor(face/2),face%2?-1:1);
+  this.faceMarker.position.copy(normal).multiplyScalar(.503).applyQuaternion(mesh.quaternion).add(mesh.position);
+  this.faceMarkerRotation.setFromUnitVectors(this.faceMarkerAxis,normal);
+  this.faceMarker.quaternion.copy(mesh.quaternion).multiply(this.faceMarkerRotation);
+ }
  render(){
+  this.updateFaceMarker();
   if(this.lightMarker){
    this.lightMarker.visible=this.mode==='light';
    this.lightMarker.position.copy(this.light.position);

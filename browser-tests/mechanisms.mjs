@@ -106,6 +106,7 @@ try{
   assert.match(await page.locator('#proofReport').textContent(),/5 actions autorisées/);
   assert.match(await page.locator('#logicJournal').textContent(),/conditions non remplies/);
   const sameRule=page.locator('#mechanismList li').filter({hasText:'Rotation'}).first();
+  await sameRule.getByText('Autres actions',{exact:true}).click();
   await sameRule.getByRole('button',{name:'Réutiliser',exact:true}).click();
   assert.equal(await page.locator('#conditionDraft li').count(),2);
   assert.equal(await page.locator('#ruleCounter').inputValue(),'tours');

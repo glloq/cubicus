@@ -17,6 +17,7 @@ export function bindProjects({read, apply, create, isComposing, hasFailedComposi
       const message = error.name === 'QuotaExceededError'
         ? 'Stockage local plein. Téléchargez le projet ou libérez de l’espace.'
         : error.message;
+      if(dirty)q('draftState').textContent='Enregistrement impossible';
       status(message);
     });
     return queue;
@@ -40,8 +41,10 @@ export function bindProjects({read, apply, create, isComposing, hasFailedComposi
     const project = structuredClone(read());
     const id = active?.id ?? crypto.randomUUID();
     dirty = false;
+    q('draftState').textContent='Enregistrement…';
     try {
       active = await writeProject(id, active?.revision ?? 0, project, {keepVersion});
+      if(!dirty)q('draftState').textContent='Brouillon enregistré sur cet appareil';
     } catch (error) {
       dirty = true;
       throw error;
@@ -51,6 +54,7 @@ export function bindProjects({read, apply, create, isComposing, hasFailedComposi
   function schedule() {
     if (switching) return;
     dirty = true;
+    q('draftState').textContent='Modifications en cours';
     clearTimeout(timer);
     timer = setTimeout(() => {
       enqueue(async () => {
@@ -87,6 +91,7 @@ export function bindProjects({read, apply, create, isComposing, hasFailedComposi
     // Imported and newly created work is saved immediately.
     await flush();
     await refresh(active?.id);
+    if(active)q('draftState').textContent='Brouillon enregistré sur cet appareil';
   }
 
   q('projectName').oninput = schedule;
@@ -193,5 +198,17 @@ export function bindProjects({read, apply, create, isComposing, hasFailedComposi
     status('Brouillon récupéré');
   });
   enqueue(refresh);
-  return {schedule};
+  function fork(name, populate){
+    switchProject(async()=>{
+      await flush();
+      active=undefined;
+      apply(readPrivateProject(create()));
+      q('projectName').value=name;
+      populate();
+      dirty=true;
+      await flush();
+      await refresh(active.id);
+    });
+  }
+  return {schedule,fork};
 }

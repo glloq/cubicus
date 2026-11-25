@@ -13,18 +13,19 @@
 </div></details>
 <button id="saveLocal">Enregistrer</button>
 </div><div class="release-actions">
-<button id="testInline">Tester ici</button><button id="test" class="icon-secondary">Tester en onglet</button><button id="export">Exporter .puzzle</button><button id="embed" class="primary">Intégrer au site</button>
+<button id="testInline">Tester ici</button><button id="test" class="icon-secondary">Tester en onglet</button><button id="export">Exporter .puzzle</button><button id="embed" class="primary">Publier</button>
 </div></header>
 <nav class="studio-tabs" aria-label="Étapes de création">
-  <button data-stage="assembly" class="active"><span aria-hidden="true">01</span> Assemblage</button>
-  <button data-stage="faces"><span aria-hidden="true">02</span> Cubes et faces</button>
-  <button data-stage="optics"><span aria-hidden="true">03</span> Optique</button>
-  <button data-stage="mechanisms"><span aria-hidden="true">04</span> Mécanismes</button>
-  <button data-stage="prepare"><span aria-hidden="true">05</span> Préparer</button>
-</nav>
+  <button data-stage="assembly" class="active">Assemblage</button>
+  <button data-stage="faces">Cubes et faces</button>
+  <button data-stage="optics">Optique</button>
+  <button data-stage="mechanisms">Mécanismes</button>
+  <button data-stage="prepare">Préparer</button>
+<button id="backToScene" type="button">Vue 3D</button></nav>
+<section id="studioWelcome" aria-label="Démarrer un projet" class="assembly-start"><button id="startBlank">Créer un projet</button><button id="startTemplate" data-open-stage="mechanisms">Essayer un modèle</button><button id="startOpen">Ouvrir un projet</button></section>
 <main class="layout studio-layout" data-stage="assembly"><aside class="workflow-panel" aria-label="Réglages de création">
 <div class="panel-heading"><h1 id="stageTitle">Assemblage</h1><p id="stageDescription">Construisez et organisez les fragments.</p></div>
-<details id="creationPaths" open><summary>Parcours de création</summary><div id="creationPathList" class="creation-paths"></div></details><div data-panel="assembly"><h2>Grille</h2><div class="axis-fields"><label>X <input id="nx" type="number" min="1" max="8" value="2"></label><label>Y <input id="ny" type="number" min="1" max="8" value="2"></label><label>Z <input id="nz" type="number" min="1" max="8" value="1"></label></div><button id="generate" class="primary">Générer la grille</button></div><div data-panel="optics"><details open><summary>Générateur de fresque</summary><label>Image complète <input id="mural" type="file" accept="image/png,image/jpeg,image/webp"></label><label>Colonnes <input id="muralX" type="number" min="1" max="8" value="3"></label><label>Lignes <input id="muralY" type="number" min="1" max="8" value="2"></label><label>Plan <select id="muralPlane"><option>XY</option><option>XZ</option><option>YZ</option></select></label>
+<details id="creationPaths"><summary>Parcours et outils</summary><div id="creationPathList" class="creation-paths"></div></details><div data-panel="assembly"><h2>Grille</h2><div class="axis-fields"><label>X <input id="nx" type="number" min="1" max="8" value="2"></label><label>Y <input id="ny" type="number" min="1" max="8" value="2"></label><label>Z <input id="nz" type="number" min="1" max="8" value="1"></label></div><button id="generate" class="primary">Générer la grille</button></div><div data-panel="optics"><details open><summary>Générateur de fresque</summary><label>Image complète <input id="mural" type="file" accept="image/png,image/jpeg,image/webp"></label><label>Colonnes <input id="muralX" type="number" min="1" max="8" value="3"></label><label>Lignes <input id="muralY" type="number" min="1" max="8" value="2"></label><label>Plan <select id="muralPlane"><option>XY</option><option>XZ</option><option>YZ</option></select></label>
 <label>Rotation <select id="muralAngle"><option>0</option><option>90</option><option>180</option><option>270</option></select></label>
 <label>Décalage horizontal <input id="muralOffsetX" type="number" value="0" min="-512" max="512"></label>
 <label>Décalage vertical <input id="muralOffsetY" type="number" value="0" min="-512" max="512"></label>
@@ -68,7 +69,7 @@
 <option value="connectors">Connecteurs solidaires</option><option value="hinge">Bras à charnière</option>
 <option value="fresco">Fresque à reconstituer</option><option value="window">Fenêtre traversante</option>
 <option value="double">Deux réflexions</option><option value="switched">Source commutée</option></select></label>
-<p id="templateDescription"></p><button id="loadMechanismTemplate">Charger le modèle</button></details>
+<p id="templateDescription"></p><button id="loadMechanismTemplate">Remplacer par le modèle</button><button id="newFromMechanismTemplate">Ouvrir comme nouveau projet</button></details>
 </section><details><summary>Composants et réglages avancés</summary>
 <details><summary>États et verrous</summary>
 <label>Nom d’état <input id="flagName" maxlength="40"></label><button id="addFlag">Ajouter un état</button>
@@ -114,9 +115,9 @@
 <details><summary>Parcours privé</summary><output id="proofCount"></output>
 <button id="recordProof" aria-pressed="false">Enregistrer les actions de manipulation</button>
 <button id="verifyProof">Vérifier le parcours depuis le départ</button><button id="clearProof">Vider le parcours</button>
-<output id="proofReport" aria-live="polite"></output><pre id="logicJournal"></pre></details>
-</div><div data-panel="prepare" hidden><button data-open-stage="mechanisms" type="button">Configurer les mécanismes</button>
-<section class="publish-check" aria-labelledby="publishTitle"><h2 id="publishTitle">Vérification avant export</h2><p id="publishSummary"></p><button id="auditProject">Contrôler l’export</button><pre id="auditResult" aria-live="polite"></pre></section><label>Consigne publique <textarea id="publicInstructions" maxlength="500"></textarea></label><details><summary>Thèmes du tutoriel</summary><p>Ajoutez les effets visuels à expliquer à l’ouverture. Les mécanismes de jeu sont également détectés automatiquement.</p><fieldset id="tutorialTopics"><legend>Effets et mécanismes publics</legend></fieldset></details><h2>Configuration initiale</h2><label><input id="shufflePos" type="checkbox" checked> Positions</label><label><input id="shuffleRot" type="checkbox" checked> Orientations</label><label>Nombre d’opérations <input id="mixSteps" type="number" min="1" max="200" value="20"></label>
+<output id="testRuleReport" aria-live="polite"></output><output id="proofReport" aria-live="polite"></output><pre id="logicJournal"></pre></details>
+</div><div data-panel="prepare" hidden><nav class="prepare-links" aria-label="Préparation"><a href="#openingSetup">Départ</a><a href="#playerTools">Commandes</a><a href="#publicInstructions">Consigne et tutoriel</a><button id="testFromPrepare">Tester</button><button id="publishFromPrepare">Exporter</button></nav><button data-open-stage="mechanisms" type="button">Configurer les mécanismes</button>
+<section class="publish-check" aria-labelledby="publishTitle"><h2 id="publishTitle">Vérification avant export</h2><p id="publishSummary"></p><button id="auditProject">Contrôler l’export</button><ul id="publishFindings" aria-live="polite"></ul><details><summary>Détails du contrôle</summary><pre id="auditResult" aria-live="polite"></pre></details></section><label>Consigne publique <textarea id="publicInstructions" maxlength="500"></textarea></label><details><summary>Thèmes du tutoriel</summary><p>Ajoutez les effets visuels à expliquer à l’ouverture. Les mécanismes de jeu sont également détectés automatiquement.</p><fieldset id="tutorialTopics"><legend>Effets et mécanismes publics</legend></fieldset></details><h2 id="openingSetup">Configuration initiale</h2><label><input id="shufflePos" type="checkbox" checked> Positions</label><label><input id="shuffleRot" type="checkbox" checked> Orientations</label><label>Nombre d’opérations <input id="mixSteps" type="number" min="1" max="200" value="20"></label>
 <fieldset id="mixAxes"><legend>Axes de rotation du mélange</legend>
 <label><input type="checkbox" value="X" checked> X</label><label><input type="checkbox" value="Y" checked> Y</label><label><input type="checkbox" value="Z" checked> Z</label>
 </fieldset><label><input id="mixSelected" type="checkbox"> Seulement la sélection</label>
@@ -128,36 +129,36 @@
 <button id="reference">Mémoriser l’état actuel</button><button id="restore">Restaurer</button>
 <button id="renameReference">Enregistrer nom et notes</button><button id="duplicateReference">Dupliquer</button>
 <button id="deleteReference">Supprimer</button><button id="compareReference">Comparer avec l’état actuel</button>
-<output id="referenceComparison"></output></details><details><summary>Outils du joueur</summary><div id="publicControls"></div></details></div><div data-panel="faces"><h2>Face active</h2><div id="faceSelectionDesktop"></div></div></aside>
-<section class="scene-workspace" aria-label="Atelier 3D">
-  <div class="scene-heading"><div><strong id="projectDisplay">Sans titre</strong><span id="sceneSelection"></span></div><div class="scene-actions"><output id="sceneStats"></output><button id="inspectSelection">Inspecter la face</button></div></div>
-  <section id="view" aria-label="Scène 3D"></section>
+<output id="referenceComparison"></output></details><details id="playerTools"><summary>Outils du joueur</summary><div id="publicControls"></div></details></div></aside>
+<section id="studioScene" class="scene-workspace" aria-label="Atelier 3D">
+  <div class="scene-heading"><div><strong id="projectDisplay">Sans titre</strong><span id="sceneSelection"></span><span id="draftState" role="status"></span></div><div class="scene-actions"><output id="sceneStats"></output><button id="inspectSelection">Inspecter la face</button></div></div>
+  <section id="view" aria-label="Scène 3D"></section><div id="studioPicking" hidden><p>Choisissez un cube dans la scène.</p><button type="button" id="cancelStudioPick">Annuler la sélection</button></div>
   <div class="scene-footer"><div id="controls"></div></div>
 </section>
-<aside class="face-panel" aria-label="Inspecteur"><div class="panel-heading"><h2>Inspecteur</h2></div><div id="faceSelectionMobile"><div id="faceSelection"><label>Cube actif <select id="cubePicker"></select></label><div id="net" class="net"></div><select id="face"><option value="0">+X</option><option value="1">−X</option><option value="2">+Y</option><option value="3">−Y</option><option value="4">+Z</option><option value="5">−Z</option></select></div></div><div class="inspector-tabs" role="group" aria-label="Sections de l’inspecteur">
+<aside class="face-panel" aria-label="Inspecteur"><div id="faceSelection"><label>Cube actif <select id="cubePicker"></select></label><label>Nom du cube <input id="cubeName" maxlength="60" placeholder="Ex. Molette"></label><strong id="faceTarget"></strong><details id="faceNet"><summary>Patron déplié et raccords</summary><div id="net" class="net"></div></details><select id="face" aria-label="Face active" hidden><option value="0">+X</option><option value="1">−X</option><option value="2">+Y</option><option value="3">−Y</option><option value="4">+Z</option><option value="5">−Z</option></select></div><div id="faceTiles" role="group" aria-label="Six faces du cube"></div><div class="inspector-tabs" role="group" aria-label="Sections de l’inspecteur">
   <button type="button" data-inspector="drawing" aria-pressed="true">Dessin</button>
   <button type="button" data-inspector="material" aria-pressed="false">Matière</button>
   <button type="button" data-inspector="geometry" aria-pressed="false">Volume</button>
 </div>
-<section data-inspector-panel="drawing"><div class="drawing-toolbar"><label>Outil <select id="brush"><option value="pen">Crayon</option><option value="line">Ligne</option><option value="rect">Rectangle</option><option value="circle">Cercle</option><option value="ellipse">Ellipse</option><option value="triangle">Triangle</option><option value="erase">Gomme</option><option value="stamp">Symbole</option></select></label><label>Image <input id="image" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label></div><section id="faceWorkspace" aria-label="Éditeur 2D">
-<div class="face-view-tools">
+<section data-inspector-panel="drawing"><div class="drawing-toolbar"><label>Outil <select id="brush"><option value="pen">Crayon</option><option value="line">Ligne</option><option value="rect">Rectangle</option><option value="circle">Cercle</option><option value="ellipse">Ellipse</option><option value="triangle">Triangle</option><option value="erase">Gomme</option><option value="stamp">Symbole</option></select></label><label class="face-import-button">Importer une image <input id="image" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label></div><section id="faceWorkspace" aria-label="Éditeur 2D">
+<div class="face-view-tools"><button type="button" id="panFace" aria-label="Déplacer la vue" aria-pressed="false">Déplacer</button><button type="button" id="faceUndo">Annuler</button><button type="button" id="faceRedo">Rétablir</button><button type="button" id="faceComposite" aria-label="Aperçu composé" aria-pressed="false">Composition</button><output id="activeLayerInfo"></output>
 <label>Zoom <input id="faceZoom" type="range" min="100" max="400" step="25" value="100"><output id="faceZoomValue">100 %</output></label>
 <button id="fitFace">Ajuster</button><button id="fullFace">Plein écran</button>
-<label><input type="checkbox" id="showFaceGrid"> Grille</label><label><input type="checkbox" id="faceGuides"> Repères axiaux</label>
+</div>
+<div class="paint-options"><label>Couleur <input id="color" type="color" value="#ffffff"></label><label>Épaisseur <input id="width" type="range" min="1" max="40" value="8"></label></div><div id="paintViewport"><div id="paintSurface"><canvas id="paint" width="512" height="512"></canvas></div></div>
+<details class="drawing-settings"><summary>Grille et options du trait</summary><div class="paint-options"><label><input type="checkbox" id="showFaceGrid"> Grille</label><label><input type="checkbox" id="faceGuides"> Repères axiaux</label>
 <label>Pas <input id="gridSize" type="number" min="4" max="128" value="32"></label>
 <label><input id="snapFace" type="checkbox"> Accrochage</label>
 <output id="paintCoordinates"></output>
-</div>
-<div id="paintViewport"><div id="paintSurface"><canvas id="paint" width="512" height="512"></canvas></div></div>
-<p class="help">Alt + glisser pour déplacer la vue. Maj pour contraindre une ligne.</p>
-</section><div class="paint-options"><label>Couleur <input id="color" type="color" value="#ffffff"></label><label>Épaisseur <input id="width" type="range" min="1" max="40" value="8"></label><label>Remplissage <input id="fillColor" type="color" value="#ffffff"></label><label><input id="shapeFill" type="checkbox"> Remplir les formes</label><label>Opacité du trait <input id="drawOpacity" type="range" min="1" max="100" value="100"></label><label><input id="dashLine" type="checkbox"> Trait discontinu</label></div><details><summary>Symboles et placement</summary><label>Symbole <select id="stampSymbol"><option value="cross">Croix</option><option value="triangle">Triangle</option><option value="square">Carré</option><option value="circle">Cercle</option><option value="diamond">Losange</option><option value="arrow">Flèche</option><option value="star">Étoile</option><option value="rings">Anneaux</option></select></label><label>Taille <input id="stampSize" type="range" min="16" max="480" value="160"></label><label>Angle <select id="stampAngle"><option>0</option><option>90</option><option>180</option><option>270</option></select></label><label><input id="stampFill" type="checkbox"> Remplir</label><button id="stampMode">Placer à la souris</button><button id="stampCenter">Insérer au centre</button></details><label>Texte <input id="text" type="text" maxlength="40"></label><button id="textAdd">Inscrire</button><button id="clear" class="danger-subtle">Effacer la face</button><button id="turn">Tourner image 90°</button><button id="copy">Copier face</button><button id="paste">Coller face</button><details><summary>Forme vectorielle</summary>
+<label>Remplissage <input id="fillColor" type="color" value="#ffffff"></label><label><input id="shapeFill" type="checkbox"> Remplir les formes</label><label>Opacité du trait <input id="drawOpacity" type="range" min="1" max="100" value="100"></label><label><input id="dashLine" type="checkbox"> Trait discontinu</label></div></details><p class="help">Alt + glisser pour déplacer la vue. Maj pour contraindre une ligne.</p>
+</section><details><summary>Symboles et placement</summary><label>Symbole <select id="stampSymbol"><option value="cross">Croix</option><option value="triangle">Triangle</option><option value="square">Carré</option><option value="circle">Cercle</option><option value="diamond">Losange</option><option value="arrow">Flèche</option><option value="star">Étoile</option><option value="rings">Anneaux</option></select></label><label>Taille <input id="stampSize" type="range" min="16" max="480" value="160"></label><label>Angle <select id="stampAngle"><option>0</option><option>90</option><option>180</option><option>270</option></select></label><label><input id="stampFill" type="checkbox"> Remplir</label><button id="stampMode">Placer à la souris</button><button id="stampCenter">Insérer au centre</button></details><label>Texte <input id="text" type="text" maxlength="40"></label><button id="textAdd">Inscrire</button><button id="clear" class="danger-subtle">Effacer le contenu actif</button><button id="turn">Tourner le contenu actif de 90°</button><label>Contenu à copier <select id="copyScope"><option value="layer">Calque actif</option><option value="visible">Image composée</option><option value="face">Dessin et calques de la face</option></select></label><button id="copy">Copier</button><button id="paste" disabled>Coller ici</button><output id="artworkStatus" aria-live="polite"></output><details><summary>Forme vectorielle</summary>
 <label>Forme <select id="vectorShape"><option value="rect">Rectangle</option><option value="ellipse">Ellipse</option><option value="triangle">Triangle</option><option value="line">Ligne</option></select></label>
 <label>X <input id="vectorX" type="number" min="0" max="512" value="128"></label><label>Y <input id="vectorY" type="number" min="0" max="512" value="128"></label>
 <label>Largeur <input id="vectorWidth" type="number" min="1" max="512" value="256"></label><label>Hauteur <input id="vectorHeight" type="number" min="1" max="512" value="256"></label>
 <label>Trait <input id="vectorStroke" type="number" min="1" max="64" value="5"></label>
 <label>Couleur <input id="vectorColor" type="color" value="#ffffff"></label><label><input id="vectorFill" type="checkbox"> Remplir</label>
 <button id="vectorAdd">Ajouter un calque de forme</button><button id="vectorUpdate" disabled>Appliquer au calque sélectionné</button>
-</details><details><summary>Calques de la face</summary><select id="layerList" size="3"></select><button id="layerAdd">Ajouter calque vide</button><label>Nom <input id="layerName" maxlength="80"></label>
+</details><details><summary>Calques de la face</summary><select id="layerList" aria-label="Calque actif"></select><div id="layerThumbnails" class="layer-thumbnails" role="group" aria-label="Aperçus des calques"></div><button id="layerAdd">Ajouter calque vide</button><label>Nom <input id="layerName" maxlength="80"></label>
 <label><input id="layerLocked" type="checkbox"> Verrouillé</label>
 <button id="layerDuplicate">Dupliquer calque</button><button id="layerFlatten">Fusionner les calques visibles</button>
 <button id="layerDelete">Supprimer calque</button><button id="layerUp">Monter</button><button id="layerDown">Descendre</button><label><input id="layerVisible" type="checkbox" checked> Visible</label><label>Opacité du calque <input id="layerOpacity" type="range" min="0" max="100" value="100"></label><p class="help">Le dessin modifie le calque actif. La scène affiche la composition.</p></details></section>
@@ -184,7 +185,7 @@
 <header class="rule-dialog-header"><div><h2 id="ruleEditorTitle">Créer une règle</h2><p id="ruleStepLabel"></p></div><button type="button" id="closeRuleEditor" aria-label="Fermer l’éditeur">Fermer</button></header>
 <div class="rule-dialog-body">
 <section data-rule-step="0"><h3>Quand la règle se déclenche-t-elle ?</h3><label id="ruleEventField">Événement <select id="ruleEvent"><option value="turn">Rotation</option><option value="move">Déplacement</option><option value="contact">Contact des faces</option><option value="beam">Capteur éclairé</option><option value="tick">Au départ et après chaque action</option><option value="enter">Entrée dans une zone</option><option value="leave">Sortie d’une zone</option></select></label>
-<label id="ruleCubeField"><span id="ruleCubeLabel">Cube</span> <select id="ruleCube"></select></label><label id="ruleZoneField" hidden>Zone <select id="ruleZone"></select></label>
+<label id="ruleCubeField"><span id="ruleCubeLabel">Cube</span> <select id="ruleCube"></select></label><button id="pickRuleCube" type="button">Choisir le cube dans la scène</button><label id="ruleZoneField" hidden>Zone <select id="ruleZone"></select></label>
 <div id="rotationFields"><label>Axe <select id="ruleAxis"><option value="">Tous</option><option>X</option><option>Y</option><option>Z</option></select></label>
 <label>Sens <select id="ruleSign"><option value="0">Tous</option><option value="1">Positif</option><option value="-1">Négatif</option></select></label></div>
 <div id="contactFields" hidden><label>Face locale <select id="ruleFace"></select></label><label>Autre cube <select id="ruleOther"></select></label><label>Sa face locale <select id="ruleOtherFace"></select></label></div>
@@ -204,13 +205,13 @@
 <label>Opération <select id="ruleCounterOp"><option value="add">Ajouter</option><option value="set">Fixer</option></select></label>
 <label>Valeur <input id="ruleCounterValue" type="number" min="-9999" max="9999" value="1"></label>
 <label>Ou créer un état <input id="ruleNewFlag" maxlength="40" placeholder="Ex. porte_ouverte"></label></div>
-<label><span id="ruleGateLabel">Déverrouiller un cube quand cet état est actif</span> <select id="ruleGateTarget"></select></label>
+<label><span id="ruleGateLabel">Déverrouiller un cube quand cet état est actif</span> <select id="ruleGateTarget"></select></label><button id="pickGateCube" type="button">Choisir la cible dans la scène</button>
 </section>
 <p id="rulePreview"></p><p id="ruleError" role="alert"></p></div>
 <footer class="rule-dialog-actions"><button id="resetRuleDraft" type="button">Annuler</button><button id="previousRuleStep" type="button">Retour</button><button id="nextRuleStep" type="button" class="primary">Continuer</button><button id="addRule" type="button" class="primary" hidden>Enregistrer la règle</button></footer>
 </dialog><dialog id="imageImport" aria-label="Transformer l’image">
 <form id="imageTransform">
-<canvas id="imagePreview" width="512" height="512"></canvas>
+<h2>Importer une image</h2><p id="imageTarget"></p><label>Destination <select id="imageMode"><option value="layer">Ajouter comme calque</option><option value="replace">Remplacer le contenu actif</option><option value="repeat">Répéter sur des faces choisies</option><option value="strip">Répartir une image en bande sur les faces latérales</option></select></label><fieldset id="imageFaces" hidden><legend>Faces à décorer</legend></fieldset><div id="imageMultiPreview" hidden></div><div id="imagePreviewWrap"><canvas id="imagePreview" width="512" height="512" aria-label="Aperçu de l’image cadrée"></canvas></div>
 <label>Cadrage <select id="importFit"><option value="fit">Ajuster</option><option value="fill">Remplir</option></select></label>
 <label>Échelle <input id="importScale" type="range" min="10" max="300" value="100"></label>
 <label>Décalage X <input id="importX" type="number" min="-512" max="512" value="0"></label>
@@ -218,8 +219,8 @@
 <label>Rotation <select id="importAngle"><option>0</option><option>90</option><option>180</option><option>270</option></select></label>
 <label><input id="importFlipX" type="checkbox"> Retournement horizontal</label>
 <label><input id="importFlipY" type="checkbox"> Retournement vertical</label>
-<label>Opacité <input id="importOpacity" type="range" min="0" max="100" value="100"></label>
-<button type="button" id="cancelImageImport">Annuler</button><button type="submit" id="applyImageImport">Appliquer</button>
+<label>Opacité <input id="importOpacity" type="range" min="0" max="100" value="100"></label><label><input id="importBlend" type="checkbox" checked> Afficher la transparence de l’image en 3D</label>
+<p id="imageError" role="alert"></p><button type="button" id="cancelImageImport">Annuler</button><button type="submit" id="applyImageImport">Appliquer</button>
 </form></dialog><dialog id="embedDialog" aria-labelledby="embedTitle">
 <h2 id="embedTitle">Intégrer l’énigme à un site</h2>
 <p>Placez le fichier HTML à côté de votre page, puis collez cette ligne dans la div de votre choix.</p>
@@ -228,7 +229,7 @@
 <textarea id="embedCode" aria-label="Code iframe avec fichier HTML" readonly rows="3"></textarea>
 <button id="copyHosted" type="button">Copier la ligne HTML</button>
 <p>Vous pouvez aussi coller une iframe qui contient tout le fichier. Cette ligne est plus longue et utilise du JavaScript intégré.</p>
-<button id="copyInline" type="button">Copier la ligne autonome</button>
+<button id="copyInline" type="button">Copier le HTML autonome</button><button id="saveFromPublish" type="button">Télécharger le projet éditable</button>
 <textarea id="inlineCode" aria-label="Code iframe autonome" readonly rows="3" hidden></textarea>
 <p id="embedStatus" role="status"></p>
 <button id="closeEmbed" type="button">Fermer</button>

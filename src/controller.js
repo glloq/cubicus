@@ -205,6 +205,7 @@ export class Controller {
     const next=mechanismStep(this.mechanisms,this.cubes,action?this.gameState:undefined,action);
     this.gameState={active:next.active,counters:next.counters,occupancy:next.occupancy};
     this.activeFlags=next.active;
+    if(action)this.onMechanismStep?.(next.journal);
   }
 
   updateIndex() {
