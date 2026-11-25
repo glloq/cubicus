@@ -16,23 +16,15 @@ const paths = [
   ['Miroir ou inscription cachée', 'faces', 'material', '#materialMode', 'Choisissez un miroir ou une matière transparente, puis réglez la vue.']
 ];
 
-export function bindWorkspace({resize, state}) {
+export function bindWorkspace({resize, state, stageChanged}) {
   const workspace = document.querySelector('.studio-layout');
-  const stageButtons = [...document.querySelectorAll('.studio-tabs button')];
+  const stageButtons = [...document.querySelectorAll('.studio-tabs [data-stage]')];
   const inspectorButtons = [...document.querySelectorAll('[data-inspector]')];
   const panels = [...workspace.querySelectorAll('[data-panel]')];
   const inspectorPanels = [...workspace.querySelectorAll('[data-inspector-panel]')];
   const byId = id => document.getElementById(id);
   const narrow = matchMedia('(max-width: 980px)');
-  function placeFaceSelection() {
-    byId(narrow.matches ? 'faceSelectionMobile' : 'faceSelectionDesktop').append(byId('faceSelection'));
-    resize();
-  }
-  narrow.addEventListener('change', placeFaceSelection);
-  placeFaceSelection();
-
-
-  function showStage(name) {
+  function showStage(name, reveal=false) {
     workspace.dataset.stage = name;
     const [title, description] = stages[name];
     byId('stageTitle').textContent = title;
@@ -44,9 +36,12 @@ export function bindWorkspace({resize, state}) {
     }
     for (const panel of panels) panel.hidden = panel.dataset.panel !== name;
     byId('creationPaths').hidden = name !== 'assembly';
-    if (narrow.matches && name === 'faces') {
-      document.querySelector('.face-panel').scrollIntoView({block:'nearest'});
+    byId('studioWelcome').hidden = name !== 'assembly';
+    if(narrow.matches&&reveal){
+      const panel=document.querySelector(name==='faces'?'.face-panel':'.workflow-panel');
+      panel.scrollIntoView({block:'start'});
     }
+    stageChanged();
     resize();
   }
 
@@ -57,12 +52,12 @@ export function bindWorkspace({resize, state}) {
 
   const inspect = byId('inspectSelection');
   inspect.onclick = () => {
-    showStage('faces');
+    showStage('faces',true);
     showInspector('drawing');
     document.querySelector('[data-inspector="drawing"]').focus({preventScroll:true});
   };
-  for (const button of stageButtons) button.onclick = () => showStage(button.dataset.stage);
-  for (const button of document.querySelectorAll('[data-open-stage]')) button.onclick = () => showStage(button.dataset.openStage);
+  for (const button of stageButtons) button.onclick = () => showStage(button.dataset.stage,true);
+  for (const button of document.querySelectorAll('[data-open-stage]')) button.onclick = () => showStage(button.dataset.openStage,true);
   for (const button of inspectorButtons) button.onclick = () => showInspector(button.dataset.inspector);
   for (const [label, stage, inspector, selector, instruction] of paths) {
     const button = document.createElement('button');
@@ -83,6 +78,14 @@ export function bindWorkspace({resize, state}) {
   }
 
   const projects = byId('localProjects');
+  byId('startBlank').onclick=()=>{showStage('assembly',true);byId('newProject').click();};
+  byId('startOpen').onclick=()=>{
+    projects.open=true;
+    projects.scrollIntoView({block:'nearest'});
+    byId('projectList').focus();
+  };
+  byId('backToScene').onclick=()=>byId('studioScene').scrollIntoView({block:'start'});
+  document.querySelector('a[href="#playerTools"]').onclick=()=>{byId('playerTools').open=true;};
   byId('recover').addEventListener('click', () => { projects.open = false; });
   document.addEventListener('pointerdown', event => {
     if (projects.open && !projects.contains(event.target)) projects.open = false;
@@ -99,7 +102,7 @@ export function bindWorkspace({resize, state}) {
     const amount = cubes.length;
     inspect.disabled = index < 0;
     byId('projectDisplay').textContent = byId('projectName').value.trim() || 'Sans titre';
-    byId('sceneSelection').textContent = index < 0 ? 'Aucune sélection' : 'Cube ' + (index+1) + ' · Face ' + face;
+    byId('sceneSelection').textContent = index < 0 ? 'Aucune sélection' : (cubes[index].name || 'Cube ' + (index+1)) + ' · ' + face;
     byId('sceneStats').textContent = amount + (amount === 1 ? ' fragment' : ' fragments');
     byId('publishSummary').textContent = [
       publicView ? 'Vue de départ personnalisée' : 'Vue de départ automatique',
@@ -109,7 +112,7 @@ export function bindWorkspace({resize, state}) {
   byId('projectName').addEventListener('input', refresh);
   byId('face').addEventListener('change', refresh);
   showStage('assembly');
-  return {refresh};
+  return {refresh,openMechanisms(){showStage('mechanisms',true);},isEditingFace:()=>workspace.dataset.stage==='faces',openFaces(reveal){if(workspace.dataset.stage!=='faces')showStage('faces',reveal);}};
 }
 
 export function updatePlayerContext(controller, name) {

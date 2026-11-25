@@ -25,7 +25,7 @@ Dans le Studio, choisissez **Intégrer au site**. Téléchargez `cubicus-enigme.
 <iframe src="./cubicus-enigme.html" title="Énigme Cubicus" sandbox="allow-scripts" loading="lazy" style="display:block;width:100%;height:clamp(460px,70vw,720px);border:0"></iframe>
 ```
 
-**Copier la ligne autonome** permet aussi de tout coller en une ligne, sans fichier séparé, si le site accepte les iframes `srcdoc` et le JavaScript intégré. Le fichier hébergé convient mieux aux sites dont la politique de sécurité bloque les scripts intégrés à la page. Le serveur qui héberge le fichier doit permettre son affichage dans une iframe et l’exécution de son script intégré.
+**Copier le HTML autonome** permet aussi de tout coller en une ligne, sans fichier séparé, si le site accepte les iframes `srcdoc` et le JavaScript intégré. Le fichier hébergé convient mieux aux sites dont la politique de sécurité bloque les scripts intégrés à la page. Le serveur qui héberge le fichier doit permettre son affichage dans une iframe et l’exécution de son script intégré.
 
 ## Développement local
 

@@ -146,7 +146,7 @@ export function mechanismStep(config,cubes,previous=[],action=null) {
     const conditions=rule.when?.items.map(item=>evaluateCondition(item,active,counters,occupancy,beams.receivers,action))??[];
     const matched=(!rule.needs||active.has(rule.needs))&&
       (!rule.when||(rule.when.mode==='any'?conditions.some(Boolean):conditions.every(Boolean)));
-    journal.push({rule:index+1,matched,conditions});
+    journal.push({rule:index+1,matched,conditions,...(rule.needs&&!active.has(rule.needs)?{requiredMissing:true}:{})});
     return matched;
   });
   for(const rule of eligible){

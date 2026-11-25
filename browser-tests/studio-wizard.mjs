@@ -15,6 +15,7 @@ try{
     await route.fulfill({response,body:(await response.text())+'\nglobalThis.testController=ctl;'});
   });
   await page.goto(base+'/studio.html');
+  await page.locator('#creationPaths summary').tap();
   await page.getByRole('button',{name:'Commencer avec une serrure'}).tap();
   assert.equal(await page.locator('.studio-layout').getAttribute('data-stage'),'mechanisms');
   assert.match(await page.locator('#templateDescription').textContent(),/Déverrouillez/);
@@ -23,6 +24,9 @@ try{
   const source=await page.locator('#ruleCube').inputValue();
   assert.ok(source);
   assert.match(await page.locator('#ruleStepLabel').textContent(),/1 \/ 2/);
+  await page.locator('#pickRuleCube').tap();
+  await page.locator('#cancelStudioPick').tap();
+  assert.equal(await page.locator('#ruleCube').inputValue(),source);
   await page.locator('#nextRuleStep').tap();
   assert.match(await page.locator('#ruleStepLabel').textContent(),/Effets · 2 \/ 2/);
   await page.locator('#ruleGateTarget').selectOption(source);
@@ -66,6 +70,12 @@ try{
     return {locked,triggered,unlocked:rotate(target)};
   });
   assert.deepEqual(result,{locked:false,triggered:true,unlocked:true});
+  await page.locator('#testRuleReport').filter({hasText:'Aucune règle'}).waitFor({state:'attached'});
+  await page.locator('#closePlaytest').tap();
+  await page.locator('#testRuleReport').waitFor();
+  await page.locator('#newFromMechanismTemplate').tap();
+  await page.locator('#draftState').filter({hasText:'Brouillon enregistré'}).waitFor();
+  await page.waitForFunction(()=>document.querySelector('#projectList').options.length===2);
   assert.deepEqual(errors,[]);
   console.log('Studio mobile : modèle, création guidée, conditions, export et Player OK');
 }catch(error){

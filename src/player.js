@@ -23,6 +23,9 @@ let openingView;
 let loadVersion=0;
 const view = new SceneView(q('view'), id => ctl.select(id));
 const ctl = new Controller(view, q('controls'), structuredClone(initial));
+if(!embedded&&window.parent!==window&&new URLSearchParams(location.search).has('studio')){
+  ctl.onMechanismStep=entries=>window.parent.postMessage({type:'cubicus-studio-rules',entries},location.origin);
+}
 
 function resetView() {
   if (view.camera.isOrthographicCamera) view.toggleProjection();

@@ -29,7 +29,13 @@ export function bindFaceWorkspace(canvas, {checkpoint, commit, canDraw, stamp, a
     q('faceZoom').value = 100;
     q('faceZoom').oninput({target: q('faceZoom')});
   };
-  const editor = q('faceWorkspace').closest('[data-inspector-panel="drawing"]') ?? q('faceWorkspace');
+  const editor = q('faceWorkspace').closest('.face-panel');
+  const pan=q('panFace');
+  pan.onclick=()=>{
+    const enabled=pan.getAttribute('aria-pressed')!=='true';
+    pan.setAttribute('aria-pressed',String(enabled));
+    viewport.classList.toggle('is-panning',enabled);
+  };
   const fullscreen = q('fullFace');
   fullscreen.hidden = typeof editor.requestFullscreen !== 'function';
   fullscreen.onclick = async () => {
@@ -102,7 +108,7 @@ export function bindFaceWorkspace(canvas, {checkpoint, commit, canDraw, stamp, a
   }
 
   canvas.onpointerdown = event => {
-    if (event.button === 1 || (event.button === 0 && event.altKey)) {
+    if (event.button === 1 || (event.button === 0 && (event.altKey || pan.getAttribute('aria-pressed')==='true'))) {
       event.preventDefault();
       canvas.setPointerCapture(event.pointerId);
       stroke = {pan: [event.clientX, event.clientY, viewport.scrollLeft, viewport.scrollTop]};

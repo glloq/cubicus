@@ -23,6 +23,7 @@ try {
   assert.equal(geometry.width,geometry.viewport);
   assert.ok(geometry.header <= geometry.viewTop && geometry.viewBottom <= geometry.dock);
 
+  await page.locator('#creationPaths summary').tap();
   await page.getByRole('button',{name:'Anamorphose',exact:true}).tap();
   assert.equal(await page.locator('.studio-layout').getAttribute('data-stage'),'optics');
   assert.equal(await page.locator('#projectionImage').isVisible(),true);
@@ -39,6 +40,62 @@ try {
   await page.locator('#volumePreset').selectOption('tunnel');
   await page.locator('#volumeApply').tap();
   assert.ok(await page.locator('#volumeCells button[aria-pressed=false]').count() > 0);
+
+  await page.locator('[data-inspector=drawing]').tap();
+  await page.locator('#cubeName').fill('Molette');
+  await page.locator('#cubeName').press('Tab');
+  const rear=page.locator('#faceTiles [data-face="5"]');
+  await rear.tap();
+  assert.match(await page.locator('#sceneSelection').textContent(),/Molette · Arrière/);
+  assert.equal(await rear.getAttribute('aria-pressed'),'true');
+
+  const artwork={name:'motif.svg',mimeType:'image/svg+xml',buffer:Buffer.from(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect width="128" height="128" fill="#d04466"/></svg>'
+  )};
+  await page.locator('#image').setInputFiles(artwork);
+  await page.locator('#imageImport[open]').waitFor();
+  assert.match(await page.locator('#imageTarget').textContent(),/Molette · Arrière/);
+  assert.equal(await page.locator('#imageMode').inputValue(),'layer');
+  await page.locator('#applyImageImport').tap();
+  await page.waitForFunction(()=>document.querySelector('#faceTiles [data-face="5"] small').textContent==='Décorée');
+  const pixel=(rgba)=>page.waitForFunction(value=>Array.from(
+    document.querySelector('#paint').getContext('2d').getImageData(256,256,1,1).data
+  ).join()===value,rgba);
+  await pixel('208,68,102,255');
+  await page.locator('#faceTiles [data-face="4"]').tap();
+  await pixel('48,64,80,255');
+  await rear.tap();
+  await pixel('208,68,102,255');
+  await page.locator('#fullFace').tap();
+  await page.waitForFunction(()=>document.fullscreenElement?.contains(document.querySelector('#faceTiles')));
+  await page.locator('#faceUndo').tap();
+  await pixel('48,64,80,255');
+  await page.locator('#faceRedo').tap();
+  await pixel('208,68,102,255');
+  await page.locator('#fullFace').tap();
+
+  await page.locator('#image').setInputFiles(artwork);
+  await page.locator('#imageMode').selectOption('repeat');
+  await page.locator('#imageFaces input[value="4"]').check();
+  await page.locator('#applyImageImport').tap();
+  await page.locator('#faceTiles [data-face="4"]').tap();
+  await pixel('208,68,102,255');
+  await page.locator('#cubePicker').selectOption({index:1});
+  await pixel('48,64,80,255');
+  const panel=page.locator('#faceTiles');
+  await page.locator('#image').setInputFiles({name:'bande.svg',mimeType:'image/svg+xml',buffer:Buffer.from(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="100">'+
+    ['#d04466','#298020','#123456','#703090'].map((fill,i)=>'<rect x="'+(i*100)+'" width="100" height="100" fill="'+fill+'"/>').join('')+'</svg>'
+  )});
+  await page.locator('#imageMode').selectOption('strip');
+  assert.match(await page.locator('#imageMultiPreview').textContent(),/Avant → Droite → Arrière → Gauche/);
+  await page.locator('#applyImageImport').tap();
+  for(const [face,rgba] of [[4,'208,68,102,255'],[0,'41,128,32,255'],[5,'18,52,86,255'],[1,'112,48,144,255']]){
+    await panel.locator('[data-face="'+face+'"]').tap();
+    await pixel(rgba);
+  }
+  await panel.locator('[data-face="2"]').tap();
+  await pixel('48,64,80,255');
 
   await page.goto(base + '/play.html');
   await page.locator('#view > canvas').waitFor();

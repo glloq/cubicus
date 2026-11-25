@@ -37,6 +37,12 @@ Le mode création peut déplacer des cubes que le joueur verra verrouillés. Vé
 
 Les parcours dans **Assemblage** ouvrent directement un outil d’édition ou un générateur. **Inspecter la face** ouvre le dessin depuis la scène. L’inspecteur sépare **Dessin**, **Matière** et **Volume**. Dans **Préparer**, utilisez **Contrôler l’export** pour vérifier le fichier public avant de le télécharger. Le menu **Projets** donne accès aux fichiers privés, au brouillon et aux versions locales.
 
+## Dessiner sur les six faces
+
+Dans **Cubes et faces**, choisissez ou nommez un cube, puis sélectionnez l’une de ses six vignettes. L’en-tête indique la face locale et le cadre dans la scène suit son orientation. **Patron déplié et raccords** affiche les faces à plat. En plein écran, les vignettes et les commandes d’annulation restent dans l’inspecteur.
+
+**Importer une image** affiche le cube et la face de destination et ajoute un calque par défaut. Vous pouvez aussi remplacer le contenu actif, répéter une image sur les faces cochées ou répartir une bande sur **Avant → Droite → Arrière → Gauche**. L’aperçu de la bande affiche les limites des faces. Pour retoucher la face, sélectionnez le calque dans **Calques de la face**. **Aperçu composé** montre le résultat envoyé à la scène. Le mode **Déplacer la vue** permet de parcourir le canevas zoomé au doigt.
+
 ## Intégrer une énigme sur un autre site
 
 Le bouton **Intégrer au site** prépare le même état public que l’export `.puzzle` et y ajoute le lecteur, Three.js et les styles. Le fichier `cubicus-enigme.html` peut être ouvert seul ou publié sur un hébergement statique. Copiez la ligne iframe dans la div voulue. Le chemin proposé fonctionne quand les deux pages sont dans le même dossier. Si le fichier est hébergé ailleurs, adaptez le chemin ou entrez son URL publique dans le Studio.
