@@ -196,8 +196,9 @@ try {
     if(await menu.getAttribute('open')===null)await mobile.locator('#startOpen').tap();
     const bounds=await mobile.locator('.menu-content').boundingBox();
     assert.ok(bounds.x>=0&&bounds.x+bounds.width<=390);
+    await mobile.locator('#localProjects summary').tap();
     const chooser=mobile.waitForEvent('filechooser');
-    await mobile.locator('#importProject').tap();
+    await mobile.locator('#load').tap();
     await (await chooser).setFiles({name,mimeType:'application/json',buffer});
   }
   await importFile('Départ.puzzle',Buffer.from(JSON.stringify(puzzle)));

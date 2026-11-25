@@ -118,7 +118,6 @@ export function bindProjects({read, apply, create, isComposing, hasFailedComposi
     await show(create());
     status('Nouveau projet créé');
   });
-  q('importProject').onclick = () => q('load').click();
   q('load').onchange = event => {
     const file = event.target.files[0];
     event.target.value = '';
