@@ -373,3 +373,6 @@ input::file-selector-button {
   background: var(--panel);
   border-top: 1px solid var(--border);
 }
+
+#playtestStatus:empty { display: none; }
+#playtestStatus { margin: 4px 0 0; color: #ffb4a4; }

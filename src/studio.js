@@ -123,21 +123,32 @@ q('test').onclick = async () => {
 
 const playtest = q('playtest');
 const playtestFrame = q('playtestFrame');
+let playtestRequest=0;
 async function reloadPlaytest() {
-  q('reloadPlaytest').disabled = true;
+  const request=++playtestRequest;
+  q('playtestStatus').textContent='';
+  q('reloadPlaytest').disabled = q('testInline').disabled = true;
   try {
-    playtestFrame.src = await testUrl();
+    const url=await testUrl();
+    if(request!==playtestRequest)return;
+    playtestFrame.src=url;
     if (!playtest.open) playtest.showModal();
   } catch (error) {
-    if (playtest.open) playtest.close();
-    status(error.message);
+    if(request!==playtestRequest)return;
+    if(playtest.open)q('playtestStatus').textContent=error.message;
+    else status(error.message);
   } finally {
-    q('reloadPlaytest').disabled = false;
+    if(request===playtestRequest)q('reloadPlaytest').disabled = q('testInline').disabled = false;
   }
 }
 q('testInline').onclick = q('reloadPlaytest').onclick = reloadPlaytest;
 q('closePlaytest').onclick = () => playtest.close();
-playtest.onclose = () => { playtestFrame.src = 'about:blank'; };
+playtest.onclose = () => {
+  playtestRequest++;
+  q('reloadPlaytest').disabled = q('testInline').disabled = false;
+  q('playtestStatus').textContent='';
+  playtestFrame.src='about:blank';
+};
 const net=q('net');for(const [i,col,row] of [[2,2,1],[1,1,2],[4,2,2],[0,3,2],[5,4,2],[3,2,3]]){const b=document.createElement('button');b.style.gridColumn=col;b.style.gridRow=row;b.dataset.face=i;b.title=q('face').options[i].text;b.onclick=()=>{q('face').value=i;layerIndex=0;loadFace()};net.append(b)}
 function refreshNet(){for(const b of q('net').children){const i=+b.dataset.face,f=selected()?.faces[i];b.style.backgroundImage=f?'url("'+f+'")':'none';b.textContent=q('face').options[i].text;b.classList.toggle('active',i===+q('face').value)}}
 function refreshLibrary(){q('library').replaceChildren(...library.map((c,i)=>new Option('Modèle '+(i+1),i)))}
